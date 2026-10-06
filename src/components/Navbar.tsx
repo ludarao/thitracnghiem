@@ -25,10 +25,10 @@ export default function Navbar() {
               </div>
               <div className="flex flex-col">
                 <span className="font-bold text-slate-900 leading-tight text-base sm:text-lg">
-                  THI TRẮC NGHIỆM ĐOÀN
+                  HỆ THỐNG THI
                 </span>
                 <span className="text-xs text-slate-500 font-medium">
-                  Nghị Quyết Đại Hội Toàn Quốc XIII
+                  Trắc nghiệm online - Tú Mòe
                 </span>
               </div>
             </Link>
