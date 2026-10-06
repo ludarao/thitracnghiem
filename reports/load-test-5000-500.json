@@ -1,0 +1,353 @@
+{
+  "date": "2026-10-06T17:26:20.830Z",
+  "environment": {
+    "scope": "localhost production Next.js + real PostgreSQL; no CDN, WAN or Vercel autoscaling",
+    "postgres": [
+      {
+        "version": "PostgreSQL 18.4 on x86_64-apple-darwin24.6.0, compiled by Apple clang version 17.0.0 (clang-1700.6.3.2), 64-bit"
+      }
+    ],
+    "participants": 5000,
+    "concurrentRequests": 500,
+    "questions": 30,
+    "prismaConnections": 10,
+    "requestTimeoutMs": 20000
+  },
+  "phases": [
+    {
+      "name": "config-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 392,
+      "p50Ms": 191,
+      "p95Ms": 356,
+      "maxMs": 369
+    },
+    {
+      "name": "start-1",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 711,
+      "p50Ms": 629,
+      "p95Ms": 683,
+      "maxMs": 705
+    },
+    {
+      "name": "submit-1",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 356,
+      "p50Ms": 269,
+      "p95Ms": 332,
+      "maxMs": 343
+    },
+    {
+      "name": "start-2",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 559,
+      "p50Ms": 490,
+      "p95Ms": 535,
+      "maxMs": 547
+    },
+    {
+      "name": "submit-2",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 335,
+      "p50Ms": 288,
+      "p95Ms": 317,
+      "maxMs": 320
+    },
+    {
+      "name": "start-3",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 803,
+      "p50Ms": 662,
+      "p95Ms": 770,
+      "maxMs": 789
+    },
+    {
+      "name": "submit-3",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 437,
+      "p50Ms": 308,
+      "p95Ms": 399,
+      "maxMs": 412
+    },
+    {
+      "name": "start-4",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 1145,
+      "p50Ms": 1011,
+      "p95Ms": 1115,
+      "maxMs": 1122
+    },
+    {
+      "name": "submit-4",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 545,
+      "p50Ms": 419,
+      "p95Ms": 493,
+      "maxMs": 509
+    },
+    {
+      "name": "start-5",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 711,
+      "p50Ms": 645,
+      "p95Ms": 690,
+      "maxMs": 692
+    },
+    {
+      "name": "submit-5",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 473,
+      "p50Ms": 369,
+      "p95Ms": 453,
+      "maxMs": 456
+    },
+    {
+      "name": "start-6",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 569,
+      "p50Ms": 432,
+      "p95Ms": 549,
+      "maxMs": 551
+    },
+    {
+      "name": "submit-6",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 329,
+      "p50Ms": 237,
+      "p95Ms": 292,
+      "maxMs": 302
+    },
+    {
+      "name": "start-7",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 554,
+      "p50Ms": 413,
+      "p95Ms": 538,
+      "maxMs": 540
+    },
+    {
+      "name": "submit-7",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 386,
+      "p50Ms": 261,
+      "p95Ms": 360,
+      "maxMs": 364
+    },
+    {
+      "name": "start-8",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 570,
+      "p50Ms": 500,
+      "p95Ms": 534,
+      "maxMs": 547
+    },
+    {
+      "name": "submit-8",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 344,
+      "p50Ms": 260,
+      "p95Ms": 313,
+      "maxMs": 331
+    },
+    {
+      "name": "start-9",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 530,
+      "p50Ms": 419,
+      "p95Ms": 513,
+      "maxMs": 515
+    },
+    {
+      "name": "submit-9",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 344,
+      "p50Ms": 269,
+      "p95Ms": 320,
+      "maxMs": 323
+    },
+    {
+      "name": "start-10",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 581,
+      "p50Ms": 414,
+      "p95Ms": 563,
+      "maxMs": 566
+    },
+    {
+      "name": "submit-10",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 366,
+      "p50Ms": 281,
+      "p95Ms": 347,
+      "maxMs": 350
+    },
+    {
+      "name": "retry-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 586,
+      "p50Ms": 445,
+      "p95Ms": 557,
+      "maxMs": 561
+    },
+    {
+      "name": "dashboard-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 876,
+      "p50Ms": 589,
+      "p95Ms": 829,
+      "maxMs": 854
+    },
+    {
+      "name": "same-attempt-race-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 392,
+      "p50Ms": 330,
+      "p95Ms": 370,
+      "maxMs": 373
+    }
+  ],
+  "errors": [],
+  "idempotent": true,
+  "dashboardCountsCorrect": true,
+  "sameAttemptRace": true,
+  "persisted": {
+    "candidates": 5000,
+    "attempts": 5001,
+    "submitted": 5001,
+    "questionBanks": 1
+  },
+  "unitCounts": [
+    {
+      "unit": "Đơn vị kiểm thử 0",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 1",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 2",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 3",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 4",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 5",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 6",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 7",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 8",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 9",
+      "count": 500
+    }
+  ],
+  "storage": [
+    {
+      "table": "AdminAccount",
+      "bytes": 16384
+    },
+    {
+      "table": "AdminSession",
+      "bytes": 16384
+    },
+    {
+      "table": "Attempt",
+      "bytes": 15736832
+    },
+    {
+      "table": "Candidate",
+      "bytes": 2072576
+    },
+    {
+      "table": "ExamResult",
+      "bytes": 32768
+    },
+    {
+      "table": "QuestionBank",
+      "bytes": 81920
+    },
+    {
+      "table": "QuizSettings",
+      "bytes": 81920
+    },
+    {
+      "table": "_prisma_migrations",
+      "bytes": 32768
+    }
+  ],
+  "databaseBytes": [
+    {
+      "bytes": 26162879
+    }
+  ],
+  "loadGeneratorCpu": {
+    "user": 4161084,
+    "system": 1012459
+  }
+}

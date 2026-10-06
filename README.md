@@ -66,3 +66,6 @@ Kiểm tra với database thật trước khi tổ chức thi: đăng nhập adm
 
 
 Dashboard chỉ hiển thị số người đã nộp bài theo từng đơn vị trong kỳ hiện tại, tính mỗi thí sinh một lần theo đơn vị lượt nộp cuối. Không tính hoặc hiển thị tỷ lệ, điểm trung bình, thi đua hay danh sách cá nhân trên dashboard. Endpoint `GET /api/results?counts=1` đếm trực tiếp trong PostgreSQL, chỉ trả tên đơn vị và số lượng, cache 60 giây. Các đơn vị chưa có người thi hiển thị 0. Kết quả/đáp án từng lượt và lịch sử admin vẫn được lưu để xử lý sau.
+
+
+Kết quả kiểm thử 5.000 thí sinh / 500 request đồng thời và đối chiếu quota Free nằm trong [reports/load-test-summary.md](reports/load-test-summary.md). Phần ghi chạy với PostgreSQL thật trên localhost; Vercel chỉ kiểm thử tải API dashboard đọc.

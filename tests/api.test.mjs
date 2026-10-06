@@ -85,6 +85,12 @@ const db = {
       where.id
         ? attempts.get(where.id)
         : [...attempts.values()].find((a) => a.token === where.token),
+    updateMany: async ({ where, data }) => {
+      const a = attempts.get(where.id);
+      if (!a || a.submittedAt !== null) return { count: 0 };
+      Object.assign(a, data, { version: a.version + 1 });
+      return { count: 1 };
+    },
     update: async ({ where, data }) => {
       const a = attempts.get(where.id);
       Object.assign(a, data, { version: a.version + 1 });
@@ -571,4 +577,21 @@ test("API số lượng: thi lại chỉ tính một người, theo đơn vị l
   assert.ok(!("results" in data));
   assert.ok(!("ranks" in data));
   assert.ok(!("config" in data));
+});
+
+test("API nộp đồng thời cùng lượt: một kết quả thắng, đáp án không bị ghi đè", async () => {
+  reset();
+  const { token } = await start();
+  const replies = await Promise.all(
+    Array.from({ length: 50 }, (_, i) =>
+      action(token, { action: "submit", answers: { 1: i % 2 ? "A" : "B" } }),
+    ),
+  );
+  const data = await Promise.all(replies.map((r) => r.json()));
+  assert.ok(
+    data.every(
+      (r) => JSON.stringify(r.result) === JSON.stringify(data[0].result),
+    ),
+  );
+  assert.equal([...attempts.values()][0].version, 1);
 });

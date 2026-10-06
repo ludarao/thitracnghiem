@@ -1,0 +1,18 @@
+{
+  "date": "2026-10-06T17:27:17.984Z",
+  "endpoint": "https://thitracnghiem-umber.vercel.app/api/results?counts=1",
+  "scope": "500 concurrent read-only dashboard HTTP requests from one client IP; CDN/cache path only, not exam writes",
+  "requests": 500,
+  "success": 500,
+  "failed": 0,
+  "elapsedMs": 3060,
+  "p50Ms": 2203,
+  "p95Ms": 2478,
+  "maxMs": 2909,
+  "statuses": {
+    "200": 500
+  },
+  "cache": {
+    "MISS": 500
+  }
+}

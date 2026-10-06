@@ -1,0 +1,392 @@
+{
+  "date": "2026-10-06T17:21:58.694Z",
+  "environment": {
+    "scope": "localhost production Next.js + real PostgreSQL; no CDN, WAN or Vercel autoscaling",
+    "postgres": [
+      {
+        "version": "PostgreSQL 18.4 on x86_64-apple-darwin24.6.0, compiled by Apple clang version 17.0.0 (clang-1700.6.3.2), 64-bit"
+      }
+    ],
+    "participants": 5000,
+    "concurrentRequests": 500,
+    "questions": 30,
+    "prismaConnections": 10,
+    "requestTimeoutMs": 20000
+  },
+  "phases": [
+    {
+      "name": "config-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 410,
+      "p50Ms": 204,
+      "p95Ms": 376,
+      "maxMs": 385
+    },
+    {
+      "name": "start-1",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 720,
+      "p50Ms": 644,
+      "p95Ms": 711,
+      "maxMs": 715
+    },
+    {
+      "name": "submit-1",
+      "requests": 500,
+      "success": 488,
+      "failed": 12,
+      "elapsedMs": 750,
+      "p50Ms": 495,
+      "p95Ms": 728,
+      "maxMs": 737
+    },
+    {
+      "name": "start-2",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 649,
+      "p50Ms": 587,
+      "p95Ms": 631,
+      "maxMs": 633
+    },
+    {
+      "name": "submit-2",
+      "requests": 500,
+      "success": 493,
+      "failed": 7,
+      "elapsedMs": 637,
+      "p50Ms": 392,
+      "p95Ms": 605,
+      "maxMs": 629
+    },
+    {
+      "name": "start-3",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 507,
+      "p50Ms": 452,
+      "p95Ms": 487,
+      "maxMs": 490
+    },
+    {
+      "name": "submit-3",
+      "requests": 500,
+      "success": 495,
+      "failed": 5,
+      "elapsedMs": 601,
+      "p50Ms": 382,
+      "p95Ms": 578,
+      "maxMs": 596
+    },
+    {
+      "name": "start-4",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 494,
+      "p50Ms": 382,
+      "p95Ms": 476,
+      "maxMs": 480
+    },
+    {
+      "name": "submit-4",
+      "requests": 500,
+      "success": 497,
+      "failed": 3,
+      "elapsedMs": 576,
+      "p50Ms": 343,
+      "p95Ms": 544,
+      "maxMs": 568
+    },
+    {
+      "name": "start-5",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 510,
+      "p50Ms": 402,
+      "p95Ms": 491,
+      "maxMs": 496
+    },
+    {
+      "name": "submit-5",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 755,
+      "p50Ms": 531,
+      "p95Ms": 727,
+      "maxMs": 746
+    },
+    {
+      "name": "start-6",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 494,
+      "p50Ms": 448,
+      "p95Ms": 476,
+      "maxMs": 479
+    },
+    {
+      "name": "submit-6",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 568,
+      "p50Ms": 340,
+      "p95Ms": 551,
+      "maxMs": 565
+    },
+    {
+      "name": "start-7",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 527,
+      "p50Ms": 453,
+      "p95Ms": 512,
+      "maxMs": 515
+    },
+    {
+      "name": "submit-7",
+      "requests": 500,
+      "success": 491,
+      "failed": 9,
+      "elapsedMs": 584,
+      "p50Ms": 356,
+      "p95Ms": 548,
+      "maxMs": 580
+    },
+    {
+      "name": "start-8",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 508,
+      "p50Ms": 442,
+      "p95Ms": 486,
+      "maxMs": 491
+    },
+    {
+      "name": "submit-8",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 510,
+      "p50Ms": 300,
+      "p95Ms": 487,
+      "maxMs": 505
+    },
+    {
+      "name": "start-9",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 525,
+      "p50Ms": 411,
+      "p95Ms": 509,
+      "maxMs": 511
+    },
+    {
+      "name": "submit-9",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 634,
+      "p50Ms": 381,
+      "p95Ms": 611,
+      "maxMs": 631
+    },
+    {
+      "name": "start-10",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 534,
+      "p50Ms": 390,
+      "p95Ms": 517,
+      "maxMs": 519
+    },
+    {
+      "name": "submit-10",
+      "requests": 500,
+      "success": 499,
+      "failed": 1,
+      "elapsedMs": 514,
+      "p50Ms": 312,
+      "p95Ms": 494,
+      "maxMs": 511
+    },
+    {
+      "name": "retry-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 327,
+      "p50Ms": 234,
+      "p95Ms": 301,
+      "maxMs": 312
+    },
+    {
+      "name": "dashboard-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "elapsedMs": 851,
+      "p50Ms": 470,
+      "p95Ms": 802,
+      "maxMs": 830
+    }
+  ],
+  "errors": [
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    },
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    },
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    },
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    },
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    },
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    },
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    },
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    },
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    },
+    {
+      "phase": "submit-1",
+      "status": 400,
+      "error": "Không thể xử lý dữ liệu. Kiểm tra kết nối database."
+    }
+  ],
+  "idempotent": false,
+  "persisted": {
+    "candidates": 5000,
+    "attempts": 5000,
+    "submitted": 4975,
+    "questionBanks": 1
+  },
+  "unitCounts": [
+    {
+      "unit": "Đơn vị kiểm thử 0",
+      "count": 499
+    },
+    {
+      "unit": "Đơn vị kiểm thử 1",
+      "count": 499
+    },
+    {
+      "unit": "Đơn vị kiểm thử 2",
+      "count": 498
+    },
+    {
+      "unit": "Đơn vị kiểm thử 3",
+      "count": 498
+    },
+    {
+      "unit": "Đơn vị kiểm thử 4",
+      "count": 496
+    },
+    {
+      "unit": "Đơn vị kiểm thử 5",
+      "count": 497
+    },
+    {
+      "unit": "Đơn vị kiểm thử 6",
+      "count": 494
+    },
+    {
+      "unit": "Đơn vị kiểm thử 7",
+      "count": 498
+    },
+    {
+      "unit": "Đơn vị kiểm thử 8",
+      "count": 496
+    },
+    {
+      "unit": "Đơn vị kiểm thử 9",
+      "count": 500
+    }
+  ],
+  "storage": [
+    {
+      "table": "AdminAccount",
+      "bytes": 16384
+    },
+    {
+      "table": "AdminSession",
+      "bytes": 16384
+    },
+    {
+      "table": "Attempt",
+      "bytes": 20250624
+    },
+    {
+      "table": "Candidate",
+      "bytes": 2080768
+    },
+    {
+      "table": "ExamResult",
+      "bytes": 32768
+    },
+    {
+      "table": "QuestionBank",
+      "bytes": 81920
+    },
+    {
+      "table": "QuizSettings",
+      "bytes": 81920
+    },
+    {
+      "table": "_prisma_migrations",
+      "bytes": 32768
+    }
+  ],
+  "databaseBytes": [
+    {
+      "bytes": 30643903
+    }
+  ],
+  "cpu": {
+    "user": 4495878,
+    "system": 929505
+  }
+}
