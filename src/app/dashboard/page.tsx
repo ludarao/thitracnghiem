@@ -1,65 +1,65 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  getStorageConfig, 
-  getStorageResults, 
-  calculateCollectiveRanks 
-} from '../../lib/storage';
-import { exportResultsToExcel } from '../../lib/excel';
-import { ExamConfig, ExamResult, CollectiveRank } from '../../types/quiz';
-import { 
-  Trophy, 
-  Users, 
-  Award, 
-  TrendingUp, 
-  CheckCircle, 
-  Download, 
-  Search, 
+import React, { useState, useEffect, useCallback } from "react";
+import { calculateCollectiveRanks } from "../../lib/storage";
+import { api } from "../../lib/client";
+import { exportResultsToExcel } from "../../lib/excel";
+import { ExamConfig, ExamResult, CollectiveRank } from "../../types/quiz";
+import {
+  Trophy,
+  Users,
+  Award,
+  TrendingUp,
+  CheckCircle,
+  Download,
+  Search,
   Medal,
   Sparkles,
   RefreshCw,
   Wifi,
   WifiOff,
-} from 'lucide-react';
+} from "lucide-react";
 
 export default function DashboardPage() {
   const [config, setConfig] = useState<ExamConfig | null>(null);
   const [results, setResults] = useState<ExamResult[]>([]);
   const [ranks, setRanks] = useState<CollectiveRank[]>([]);
-  const [searchUnit, setSearchUnit] = useState('');
-  const [activeTab, setActiveTab] = useState<'COLLECTIVE' | 'INDIVIDUAL'>('COLLECTIVE');
+  const [searchUnit, setSearchUnit] = useState("");
+  const [activeTab, setActiveTab] = useState<"COLLECTIVE" | "INDIVIDUAL">(
+    "COLLECTIVE",
+  );
+  const [error, setError] = useState("");
+  const [totalAttempts, setTotalAttempts] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [dbConnected, setDbConnected] = useState<boolean | null>(null); // null = chưa biết
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
-    const cfg = getStorageConfig();
-    setConfig(cfg);
 
     try {
       // Ưu tiên lấy dữ liệu từ Cloud Database
-      const response = await fetch('/api/results', { cache: 'no-store' });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
+      const data = await api("/api/results");
+      const cfg = data.config;
+      setConfig(cfg);
+      setTotalAttempts(data.totalAttempts);
+      setError("");
       if (data.success && Array.isArray(data.results)) {
         setResults(data.results as ExamResult[]);
-        const rk = calculateCollectiveRanks(data.results as ExamResult[], cfg.units);
+        const rk = calculateCollectiveRanks(
+          data.results as ExamResult[],
+          cfg.units,
+        );
         setRanks(rk);
         setDbConnected(true);
         setLastUpdated(new Date());
       } else {
-        throw new Error('Dữ liệu trả về không hợp lệ');
+        throw new Error("Dữ liệu trả về không hợp lệ");
       }
     } catch (err) {
-      console.warn('Không kết nối được Cloud DB, dùng dữ liệu cục bộ:', err);
+      console.warn("Không kết nối được Cloud DB, dùng dữ liệu cục bộ:", err);
       setDbConnected(false);
-      // Fallback: dùng LocalStorage
-      const localRes = getStorageResults();
-      setResults(localRes);
-      const rk = calculateCollectiveRanks(localRes, cfg.units);
-      setRanks(rk);
+      setError("Không tải được dữ liệu chung. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
@@ -79,19 +79,28 @@ export default function DashboardPage() {
 
   // Tính số liệu tổng quan toàn cơ quan
   const totalParticipants = results.length;
-  const totalTarget = config?.units.reduce((acc, u) => acc + u.targetCount, 0) || 1;
-  const overallParticipationRate = Math.min(100, Math.round((totalParticipants / totalTarget) * 10000) / 100);
-  const overallAvgScore = totalParticipants > 0 
-    ? Math.round((results.reduce((acc, r) => acc + r.score, 0) / totalParticipants) * 100) / 100 
-    : 0;
-  const passedCount = results.filter(r => r.percentage >= (config?.passingScorePercent ?? 80)).length;
-  const overallPassRate = totalParticipants > 0 
-    ? Math.round((passedCount / totalParticipants) * 10000) / 100 
-    : 0;
+  const totalTarget =
+    config?.units.reduce((acc, u) => acc + u.targetCount, 0) || 1;
+  const overallParticipationRate = Math.min(
+    100,
+    Math.round((totalParticipants / totalTarget) * 10000) / 100,
+  );
+  const overallAvgScore =
+    totalParticipants > 0
+      ? Math.round(
+          (results.reduce((acc, r) => acc + r.score, 0) / totalParticipants) *
+            100,
+        ) / 100
+      : 0;
+  const passedCount = results.filter((r) => r.isPassed).length;
+  const overallPassRate =
+    totalParticipants > 0
+      ? Math.round((passedCount / totalParticipants) * 10000) / 100
+      : 0;
 
   // Lọc bảng tập thể
-  const filteredRanks = ranks.filter(r => 
-    r.unit.toLowerCase().includes(searchUnit.toLowerCase())
+  const filteredRanks = ranks.filter((r) =>
+    r.unit.toLowerCase().includes(searchUnit.toLowerCase()),
   );
 
   // Sắp xếp top cá nhân
@@ -102,6 +111,14 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 pb-12">
+      {error && (
+        <p role="alert" className="text-red-700">
+          {error}
+        </p>
+      )}
+      <p className="text-sm text-slate-600">
+        Mỗi thí sinh tính lượt nộp cuối. Tổng lượt đã nộp: {totalAttempts}.
+      </p>
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -121,7 +138,7 @@ export default function DashboardPage() {
               {dbConnected === false && (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-200 border border-amber-400/30">
                   <WifiOff className="w-3 h-3" />
-                  Dữ liệu cục bộ
+                  Chưa kết nối database
                 </span>
               )}
             </div>
@@ -129,11 +146,13 @@ export default function DashboardPage() {
               Bảng Xếp Hạng Tập Thể &amp; Cá Nhân
             </h1>
             <p className="text-blue-100 text-sm max-w-2xl">
-              Đánh giá thực chất dựa trên 3 tiêu chí cốt lõi: Tỷ lệ quân số tham gia, Điểm trung bình và Tỷ lệ đạt xuất sắc (&ge;80%).
+              Đánh giá thực chất dựa trên 3 tiêu chí cốt lõi: Tỷ lệ quân số tham
+              gia, Điểm trung bình và Tỷ lệ đạt xuất sắc (&ge;80%).
             </p>
             {lastUpdated && (
               <p className="text-blue-200 text-xs">
-                Cập nhật lần cuối: {lastUpdated.toLocaleTimeString('vi-VN')} (Tự động làm mới mỗi 30 giây)
+                Cập nhật lần cuối: {lastUpdated.toLocaleTimeString("vi-VN")} (Tự
+                động làm mới mỗi 30 giây)
               </p>
             )}
           </div>
@@ -144,8 +163,10 @@ export default function DashboardPage() {
               disabled={isLoading}
               className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-sm transition-all flex items-center gap-2 disabled:opacity-50"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-              <span>{isLoading ? 'Đang tải...' : 'Làm mới'}</span>
+              <RefreshCw
+                className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`}
+              />
+              <span>{isLoading ? "Đang tải..." : "Làm mới"}</span>
             </button>
 
             <button
@@ -167,9 +188,15 @@ export default function DashboardPage() {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase">Tổng Lượt Dự Thi</p>
-            <p className="text-2xl font-bold text-slate-900 mt-0.5">{totalParticipants}</p>
-            <p className="text-xs text-slate-400">Trên tổng {totalTarget} quân số</p>
+            <p className="text-xs font-medium text-slate-500 uppercase">
+              Số Người Tham Gia
+            </p>
+            <p className="text-2xl font-bold text-slate-900 mt-0.5">
+              {totalParticipants}
+            </p>
+            <p className="text-xs text-slate-400">
+              Trên tổng {totalTarget} quân số
+            </p>
           </div>
         </div>
 
@@ -178,8 +205,12 @@ export default function DashboardPage() {
             <TrendingUp className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase">Tỷ Lệ Tham Gia Chung</p>
-            <p className="text-2xl font-bold text-emerald-600 mt-0.5">{overallParticipationRate}%</p>
+            <p className="text-xs font-medium text-slate-500 uppercase">
+              Tỷ Lệ Tham Gia Chung
+            </p>
+            <p className="text-2xl font-bold text-emerald-600 mt-0.5">
+              {overallParticipationRate}%
+            </p>
             <p className="text-xs text-slate-400">Tiêu chí 1 thi đua</p>
           </div>
         </div>
@@ -189,8 +220,13 @@ export default function DashboardPage() {
             <Award className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase">Điểm Trung Bình Toàn Khối</p>
-            <p className="text-2xl font-bold text-amber-600 mt-0.5">{overallAvgScore}<span className="text-sm font-normal text-slate-400">/10</span></p>
+            <p className="text-xs font-medium text-slate-500 uppercase">
+              Điểm Trung Bình Toàn Khối
+            </p>
+            <p className="text-2xl font-bold text-amber-600 mt-0.5">
+              {overallAvgScore}
+              <span className="text-sm font-normal text-slate-400">/10</span>
+            </p>
             <p className="text-xs text-slate-400">Tiêu chí 2 thi đua</p>
           </div>
         </div>
@@ -200,8 +236,12 @@ export default function DashboardPage() {
             <CheckCircle className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-xs font-medium text-slate-500 uppercase">Tỷ Lệ Đạt &ge;80%</p>
-            <p className="text-2xl font-bold text-purple-600 mt-0.5">{overallPassRate}%</p>
+            <p className="text-xs font-medium text-slate-500 uppercase">
+              Tỷ Lệ Đạt
+            </p>
+            <p className="text-2xl font-bold text-purple-600 mt-0.5">
+              {overallPassRate}%
+            </p>
             <p className="text-xs text-slate-400">Tiêu chí 3 thi đua</p>
           </div>
         </div>
@@ -210,11 +250,11 @@ export default function DashboardPage() {
       {/* Tabs Chuyển đổi Tập Thể / Cá Nhân */}
       <div className="flex border-b border-slate-200">
         <button
-          onClick={() => setActiveTab('COLLECTIVE')}
+          onClick={() => setActiveTab("COLLECTIVE")}
           className={`pb-3 px-4 font-semibold text-sm transition-all border-b-2 flex items-center gap-2 ${
-            activeTab === 'COLLECTIVE'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+            activeTab === "COLLECTIVE"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
           <Trophy className="w-4 h-4" />
@@ -222,11 +262,11 @@ export default function DashboardPage() {
         </button>
 
         <button
-          onClick={() => setActiveTab('INDIVIDUAL')}
+          onClick={() => setActiveTab("INDIVIDUAL")}
           className={`pb-3 px-4 font-semibold text-sm transition-all border-b-2 flex items-center gap-2 ${
-            activeTab === 'INDIVIDUAL'
-              ? 'border-blue-600 text-blue-600'
-              : 'border-transparent text-slate-500 hover:text-slate-800'
+            activeTab === "INDIVIDUAL"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-slate-500 hover:text-slate-800"
           }`}
         >
           <Medal className="w-4 h-4" />
@@ -235,7 +275,7 @@ export default function DashboardPage() {
       </div>
 
       {/* TAB 1: BẢNG XẾP HẠNG TẬP THỂ */}
-      {activeTab === 'COLLECTIVE' && (
+      {activeTab === "COLLECTIVE" && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="relative w-full sm:w-72">
@@ -249,7 +289,8 @@ export default function DashboardPage() {
               />
             </div>
             <div className="text-xs text-slate-500">
-              * Điểm thi đua = (35% Tỷ lệ tham gia) + (35% Điểm TB x 10) + (30% Tỷ lệ đạt &ge;80%)
+              * Điểm thi đua = (35% Tỷ lệ tham gia) + (35% Điểm TB x 10) + (30%
+              Tỷ lệ đạt)
             </div>
           </div>
 
@@ -261,45 +302,78 @@ export default function DashboardPage() {
                     <th className="py-4 px-4 text-center w-16">Hạng</th>
                     <th className="py-4 px-4">Tên Đơn Vị</th>
                     <th className="py-4 px-4 text-center">Quân Số</th>
-                    <th className="py-4 px-4 text-center">Lượt Thi</th>
+                    <th className="py-4 px-4 text-center">Người Tham Gia</th>
                     <th className="py-4 px-4 text-center">Tỷ Lệ Tham Gia</th>
                     <th className="py-4 px-4 text-center">Điểm TB (/10)</th>
-                    <th className="py-4 px-4 text-center">Tỷ Lệ Đạt &ge;80%</th>
-                    <th className="py-4 px-4 text-center font-bold text-blue-700">Điểm Thi Đua</th>
+                    <th className="py-4 px-4 text-center">Tỷ Lệ Đạt</th>
+                    <th className="py-4 px-4 text-center font-bold text-blue-700">
+                      Điểm Thi Đua
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredRanks.map((r) => {
                     let rankBadge = null;
                     if (r.rank === 1) {
-                      rankBadge = <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-white font-bold shadow-sm">1</span>;
+                      rankBadge = (
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-400 text-white font-bold shadow-sm">
+                          1
+                        </span>
+                      );
                     } else if (r.rank === 2) {
-                      rankBadge = <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-300 text-slate-800 font-bold shadow-sm">2</span>;
+                      rankBadge = (
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-300 text-slate-800 font-bold shadow-sm">
+                          2
+                        </span>
+                      );
                     } else if (r.rank === 3) {
-                      rankBadge = <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-700 text-white font-bold shadow-sm">3</span>;
+                      rankBadge = (
+                        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-700 text-white font-bold shadow-sm">
+                          3
+                        </span>
+                      );
                     } else {
-                      rankBadge = <span className="text-slate-500 font-medium">{r.rank}</span>;
+                      rankBadge = (
+                        <span className="text-slate-500 font-medium">
+                          {r.rank}
+                        </span>
+                      );
                     }
 
                     return (
-                      <tr key={r.unit} className="hover:bg-slate-50/70 transition-colors">
+                      <tr
+                        key={r.unit}
+                        className="hover:bg-slate-50/70 transition-colors"
+                      >
                         <td className="py-4 px-4 text-center">{rankBadge}</td>
-                        <td className="py-4 px-4 font-semibold text-slate-800">{r.unit}</td>
-                        <td className="py-4 px-4 text-center text-slate-600">{r.targetCount}</td>
-                        <td className="py-4 px-4 text-center font-medium text-slate-700">{r.participantCount}</td>
+                        <td className="py-4 px-4 font-semibold text-slate-800">
+                          {r.unit}
+                        </td>
+                        <td className="py-4 px-4 text-center text-slate-600">
+                          {r.targetCount}
+                        </td>
+                        <td className="py-4 px-4 text-center font-medium text-slate-700">
+                          {r.participantCount}
+                        </td>
                         <td className="py-4 px-4 text-center">
-                          <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                            r.participationRate >= 100 
-                              ? 'bg-emerald-100 text-emerald-700' 
-                              : r.participationRate >= 70 
-                              ? 'bg-blue-100 text-blue-700' 
-                              : 'bg-amber-100 text-amber-700'
-                          }`}>
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                              r.participationRate >= 100
+                                ? "bg-emerald-100 text-emerald-700"
+                                : r.participationRate >= 70
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
                             {r.participationRate}%
                           </span>
                         </td>
-                        <td className="py-4 px-4 text-center font-bold text-slate-800">{r.averageScore}</td>
-                        <td className="py-4 px-4 text-center font-semibold text-purple-700">{r.passRate}%</td>
+                        <td className="py-4 px-4 text-center font-bold text-slate-800">
+                          {r.averageScore}
+                        </td>
+                        <td className="py-4 px-4 text-center font-semibold text-purple-700">
+                          {r.passRate}%
+                        </td>
                         <td className="py-4 px-4 text-center">
                           <span className="text-base font-extrabold text-blue-600">
                             {r.overallScore}
@@ -316,14 +390,16 @@ export default function DashboardPage() {
       )}
 
       {/* TAB 2: BẢNG VINH DANH CÁ NHÂN */}
-      {activeTab === 'INDIVIDUAL' && (
+      {activeTab === "INDIVIDUAL" && (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
             <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
               <Medal className="w-4 h-4 text-amber-500" />
               Danh sách kết quả cá nhân (Sắp xếp theo Điểm số & Thời gian)
             </h3>
-            <span className="text-xs text-slate-500">Tổng cộng {sortedIndividuals.length} thí sinh</span>
+            <span className="text-xs text-slate-500">
+              Tổng cộng {sortedIndividuals.length} thí sinh
+            </span>
           </div>
 
           <div className="overflow-x-auto">
@@ -350,22 +426,44 @@ export default function DashboardPage() {
                   </tr>
                 ) : (
                   sortedIndividuals.map((res, idx) => (
-                    <tr key={res.id} className="hover:bg-slate-50/70 transition-colors">
-                      <td className="py-3.5 px-4 text-center font-bold text-slate-500">{idx + 1}</td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-900">{res.userInfo.fullName}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{res.userInfo.rank}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{res.userInfo.position}</td>
-                      <td className="py-3.5 px-4 font-medium text-slate-700">{res.userInfo.unit}</td>
-                      <td className="py-3.5 px-4 text-center font-extrabold text-blue-600 text-base">{res.score}</td>
-                      <td className="py-3.5 px-4 text-center text-slate-700">{res.correctCount}/{res.totalQuestions}</td>
+                    <tr
+                      key={res.id}
+                      className="hover:bg-slate-50/70 transition-colors"
+                    >
+                      <td className="py-3.5 px-4 text-center font-bold text-slate-500">
+                        {idx + 1}
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">
+                        {res.userInfo.fullName}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600">
+                        {res.userInfo.rank}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600">
+                        {res.userInfo.position}
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-slate-700">
+                        {res.userInfo.unit}
+                      </td>
+                      <td className="py-3.5 px-4 text-center font-extrabold text-blue-600 text-base">
+                        {res.score}
+                      </td>
+                      <td className="py-3.5 px-4 text-center text-slate-700">
+                        {res.correctCount}/{res.totalQuestions}
+                      </td>
                       <td className="py-3.5 px-4 text-center text-slate-500 font-mono text-xs">
-                        {Math.floor(res.totalDurationSeconds / 60)}p {res.totalDurationSeconds % 60}s
+                        {Math.floor(res.totalDurationSeconds / 60)}p{" "}
+                        {res.totalDurationSeconds % 60}s
                       </td>
                       <td className="py-3.5 px-4 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
-                          res.isPassed ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {res.isPassed ? 'Đạt' : 'Chưa đạt'}
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+                            res.isPassed
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {res.isPassed ? "Đạt" : "Chưa đạt"}
                         </span>
                       </td>
                     </tr>

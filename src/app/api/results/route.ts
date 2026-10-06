@@ -1,129 +1,96 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '../../../lib/prisma';
-
-// POST /api/results — Thí sinh nộp bài, lưu kết quả lên Database
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const {
-      userInfo,
-      score,
-      correctCount,
-      totalQuestions,
-      percentage,
-      isPassed,
-      totalDurationSeconds,
-      startTime,
-      endTime,
-      submittedAt,
-      answers,
-    } = body;
-
-    const result = await prisma.examResult.create({
-      data: {
-        fullName: userInfo.fullName,
-        rank: userInfo.rank,
-        position: userInfo.position,
-        unit: userInfo.unit,
-        score,
-        correctCount,
-        totalQuestions,
-        percentage,
-        isPassed,
-        totalDurationSeconds,
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
-        submittedAt: new Date(submittedAt),
-        answersJson: JSON.stringify(answers),
-      },
-    });
-
-    return NextResponse.json({ success: true, id: result.id }, { status: 201 });
-  } catch (error: any) {
-    console.error('POST /api/results error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Lỗi hệ thống khi lưu kết quả' },
-      { status: 500 }
-    );
-  }
-}
-
-// GET /api/results — Dashboard lấy toàn bộ kết quả về để xếp hạng
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "../../../lib/prisma";
+import {
+  settings,
+  isAdmin,
+  checkOrigin,
+  failure,
+  token,
+} from "../../../lib/server";
+import { settleExpiredAttempts } from "../../../lib/attempt-service";
+import { latestAttempts } from "../../../lib/attempt-state";
+import type { ExamResult } from "../../../types/quiz";
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const unit = searchParams.get('unit'); // Lọc theo đơn vị (tùy chọn)
-
-    const results = await prisma.examResult.findMany({
-      where: unit ? { unit } : undefined,
-      orderBy: { submittedAt: 'desc' },
-      select: {
-        id: true,
-        fullName: true,
-        rank: true,
-        position: true,
-        unit: true,
-        score: true,
-        correctCount: true,
-        totalQuestions: true,
-        percentage: true,
-        isPassed: true,
-        totalDurationSeconds: true,
-        submittedAt: true,
-        startTime: true,
-        endTime: true,
-        // Không trả answersJson ở danh sách để giảm payload
-      },
+    const s = await settings();
+    const admin = await isAdmin(req);
+    const history = req.nextUrl.searchParams.get("history") === "1";
+    if (history && !admin)
+      return NextResponse.json(
+        { error: "Cần đăng nhập admin." },
+        { status: 401 },
+      );
+    await settleExpiredAttempts(s.activeExamId);
+    if (history) {
+      const records = await prisma.attempt.findMany({
+        where: { submittedAt: { not: null } },
+        orderBy: { submittedAt: "desc" },
+        take: 500,
+      });
+      return NextResponse.json(
+        {
+          success: true,
+          history: records.map((a) => ({
+            ...(a.result as object),
+            examId: a.examId,
+          })),
+          limit: 500,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    const attempts = await prisma.attempt.findMany({
+      where: { examId: s.activeExamId, submittedAt: { not: null } },
+      orderBy: [{ submittedAt: "desc" }, { id: "desc" }],
     });
-
-    // Map về format cũ để Dashboard hiển thị không cần sửa gì
-    const mapped = results.map((r) => ({
-      id: r.id,
-      userInfo: {
-        fullName: r.fullName,
-        rank: r.rank,
-        position: r.position,
-        unit: r.unit,
-      },
-      score: r.score,
-      correctCount: r.correctCount,
-      totalQuestions: r.totalQuestions,
-      percentage: r.percentage,
-      isPassed: r.isPassed,
-      totalDurationSeconds: r.totalDurationSeconds,
-      startTime: r.startTime.toISOString(),
-      endTime: r.endTime.toISOString(),
-      submittedAt: r.submittedAt.toISOString(),
-    }));
-
-    return NextResponse.json({ success: true, results: mapped });
-  } catch (error: any) {
-    console.error('GET /api/results error:', error);
+    const results = latestAttempts(attempts).map((a) => {
+      const result = a.result as unknown as ExamResult;
+      return {
+        ...result,
+        answers: [],
+        userInfo: {
+          fullName: result.userInfo.fullName,
+          rank: result.userInfo.rank,
+          position: result.userInfo.position,
+          unit: result.userInfo.unit,
+          ...(admin
+            ? {
+                phone: result.userInfo.phone,
+                candidateCode: result.userInfo.candidateCode,
+              }
+            : {}),
+        },
+      };
+    });
     return NextResponse.json(
-      { success: false, error: error.message || 'Lỗi hệ thống khi lấy kết quả' },
-      { status: 500 }
+      {
+        success: true,
+        results,
+        totalAttempts: attempts.length,
+        config: s.config,
+      },
+      { headers: { "Cache-Control": "no-store" } },
     );
+  } catch (e) {
+    return failure(e);
   }
 }
-
-// DELETE /api/results — Admin xóa toàn bộ kết quả để bắt đầu kỳ thi mới
+// Bắt đầu kỳ thi mới, giữ nguyên lịch sử và cấu hình.
 export async function DELETE(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const adminKey = searchParams.get('key');
-
-    // Yêu cầu đúng ADMIN_SECRET_KEY mới cho phép xóa
-    if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const deleted = await prisma.examResult.deleteMany({});
-    return NextResponse.json({ success: true, deleted: deleted.count });
-  } catch (error: any) {
-    console.error('DELETE /api/results error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Lỗi khi xóa kết quả' },
-      { status: 500 }
-    );
+    checkOrigin(req);
+    if (!(await isAdmin(req)))
+      return NextResponse.json(
+        { error: "Cần đăng nhập admin." },
+        { status: 401 },
+      );
+    await settings();
+    await prisma.quizSettings.update({
+      where: { id: "main" },
+      data: { activeExamId: token() },
+    });
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    return failure(e);
   }
 }

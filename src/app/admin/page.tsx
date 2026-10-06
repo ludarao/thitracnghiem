@@ -1,126 +1,152 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { 
-  getStorageConfig, 
-  saveStorageConfig, 
-  getStorageQuestions, 
-  saveStorageQuestions,
-  getAdminPassword,
-  setAdminPassword,
-  clearAllResults,
-  getStorageResults
-} from '../../lib/storage';
-import { parseExcelQuestions } from '../../lib/excel';
-import { ExamConfig, Question, UnitTarget } from '../../types/quiz';
-import { 
-  Lock, 
-  Save, 
-  Upload, 
-  Trash2, 
-  Plus, 
-  Key, 
-  Shuffle, 
-  Clock, 
-  CheckCircle2, 
-  AlertTriangle, 
+import React, { useState, useEffect } from "react";
+import { api } from "../../lib/client";
+import { exportResultsToExcel, parseExcelQuestions } from "../../lib/excel";
+import { ExamConfig, Question, UnitTarget } from "../../types/quiz";
+import {
+  Lock,
+  Save,
+  Upload,
+  Trash2,
+  Plus,
+  Key,
+  Shuffle,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
   FileSpreadsheet,
   ListOrdered,
-  Eye,
   LogOut,
-  Layers
-} from 'lucide-react';
+  Layers,
+} from "lucide-react";
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [inputPassword, setInputPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
+  const [inputPassword, setInputPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyError, setHistoryError] = useState("");
+  const loadHistory = async () => {
+    try {
+      const data = await api("/api/results?history=1");
+      setHistory(data.history);
+      setHistoryError("");
+    } catch (e) {
+      setHistoryError((e as Error).message);
+    }
+  };
 
   // Cấu hình
   const [config, setConfig] = useState<ExamConfig | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
-  const [newUnitName, setNewUnitName] = useState('');
+  const [newUnitName, setNewUnitName] = useState("");
   const [newUnitTarget, setNewUnitTarget] = useState<number>(30);
 
   // Mật khẩu mới
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordMsg, setPasswordMsg] = useState('');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordMsg, setPasswordMsg] = useState("");
 
   // Tải file excel
-  const [uploadStatus, setUploadStatus] = useState<string>('');
+  const [uploadStatus, setUploadStatus] = useState<string>("");
 
   useEffect(() => {
-    // Check session
-    const adminSession = sessionStorage.getItem('admin_authenticated');
-    if (adminSession === 'true') {
-      setIsAuthenticated(true);
-      loadAdminData();
-    }
+    void api("/api/admin")
+      .then((data) => {
+        if (data.authenticated) {
+          setIsAuthenticated(true);
+          void loadAdminData();
+        }
+      })
+      .catch((e) => setLoginError(e.message));
   }, []);
-
-  const loadAdminData = () => {
-    setConfig(getStorageConfig());
-    setQuestions(getStorageQuestions());
+  const loadAdminData = async () => {
+    try {
+      const data = await api("/api/config");
+      setConfig(data.config);
+      setQuestions(data.questions || []);
+      void loadHistory();
+    } catch (e) {
+      setLoginError((e as Error).message);
+    }
   };
-
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const currentPass = getAdminPassword();
-    if (inputPassword === currentPass) {
+    try {
+      await api("/api/admin", {
+        method: "POST",
+        body: JSON.stringify({ password: inputPassword }),
+      });
       setIsAuthenticated(true);
-      sessionStorage.setItem('admin_authenticated', 'true');
-      setLoginError('');
-      loadAdminData();
-    } else {
-      setLoginError('Mật khẩu quản trị viên không chính xác!');
+      setLoginError("");
+      await loadAdminData();
+    } catch (e) {
+      setLoginError((e as Error).message);
     }
   };
-
-  const handleLogout = () => {
-    sessionStorage.removeItem('admin_authenticated');
-    setIsAuthenticated(false);
-    setInputPassword('');
+  const handleLogout = async () => {
+    try {
+      await api("/api/admin", { method: "DELETE" });
+      setIsAuthenticated(false);
+      setConfig(null);
+      setInputPassword("");
+    } catch (e) {
+      alert((e as Error).message);
+    }
   };
-
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     if (!config) return;
-    saveStorageConfig(config);
-    alert('Đã lưu cấu hình kỳ thi thành công!');
+    try {
+      await api("/api/config", {
+        method: "PUT",
+        body: JSON.stringify({ config, questions }),
+      });
+      alert("Đã lưu cấu hình chung cho toàn bộ thí sinh.");
+    } catch (e) {
+      alert((e as Error).message);
+    }
   };
-
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPassword || newPassword.length < 6) {
-      setPasswordMsg('Mật khẩu mới phải có ít nhất 6 ký tự!');
-      return;
-    }
     if (newPassword !== confirmPassword) {
-      setPasswordMsg('Mật khẩu xác nhận không trùng khớp!');
+      setPasswordMsg("Mật khẩu xác nhận không khớp.");
       return;
     }
-    setAdminPassword(newPassword);
-    setPasswordMsg('Đã đổi mật khẩu Admin thành công!');
-    setNewPassword('');
-    setConfirmPassword('');
+    try {
+      await api("/api/admin", {
+        method: "PUT",
+        body: JSON.stringify({ password: newPassword }),
+      });
+      setIsAuthenticated(false);
+      setConfig(null);
+      setInputPassword("");
+      setLoginError("Đã đổi mật khẩu. Hãy đăng nhập lại.");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (e) {
+      setPasswordMsg((e as Error).message);
+    }
   };
-
   // Thêm đơn vị mới
   const handleAddUnit = () => {
     if (!config || !newUnitName.trim()) return;
-    const exists = config.units.some(u => u.name.toLowerCase() === newUnitName.trim().toLowerCase());
+    const exists = config.units.some(
+      (u) => u.name.toLowerCase() === newUnitName.trim().toLowerCase(),
+    );
     if (exists) {
-      alert('Đơn vị này đã tồn tại trong danh sách!');
+      alert("Đơn vị này đã tồn tại trong danh sách!");
       return;
     }
     const updatedUnits: UnitTarget[] = [
       ...config.units,
-      { name: newUnitName.trim(), targetCount: Number(newUnitTarget) || 20 }
+      { name: newUnitName.trim(), targetCount: Number(newUnitTarget) || 20 },
     ];
     const updatedConfig = { ...config, units: updatedUnits };
     setConfig(updatedConfig);
-    saveStorageConfig(updatedConfig);
-    setNewUnitName('');
+
+    setNewUnitName("");
   };
 
   // Xóa đơn vị
@@ -129,7 +155,6 @@ export default function AdminPage() {
     const updatedUnits = config.units.filter((_, i) => i !== index);
     const updatedConfig = { ...config, units: updatedUnits };
     setConfig(updatedConfig);
-    saveStorageConfig(updatedConfig);
   };
 
   // Cập nhật chỉ tiêu quân số đơn vị
@@ -147,52 +172,40 @@ export default function AdminPage() {
     if (!file) return;
 
     try {
-      setUploadStatus('Đang đọc và phân tích file Excel...');
+      setUploadStatus("Đang đọc và phân tích file Excel...");
       const parsedQuestions = await parseExcelQuestions(file);
-      saveStorageQuestions(parsedQuestions);
+
       setQuestions(parsedQuestions);
 
       // Tự động điều chỉnh số lượng câu hỏi thi nếu cấu hình vượt quá số câu
       if (config && config.questionCount > parsedQuestions.length) {
         const updatedCfg = { ...config, questionCount: parsedQuestions.length };
         setConfig(updatedCfg);
-        saveStorageConfig(updatedCfg);
       }
 
-      setUploadStatus(`Thành công! Đã nạp ${parsedQuestions.length} câu hỏi mới vào ngân hàng.`);
+      setUploadStatus(
+        `Đã đọc ${parsedQuestions.length} câu hỏi. Nhấn Lưu Cấu Hình để cập nhật lên server.`,
+      );
     } catch (err: any) {
-      setUploadStatus(`Lỗi: ${err.message || 'Không thể đọc file'}`);
+      setUploadStatus(`Lỗi: ${err.message || "Không thể đọc file"}`);
     }
   };
 
-  // Reset toàn bộ kết quả thi (cả Cloud DB + LocalStorage)
   const handleClearResults = async () => {
-    const localResults = getStorageResults();
-    if (!confirm(`Bạn có chắc chắn muốn xóa toàn bộ ${localResults.length} kết quả thi hiện tại để bắt đầu kỳ thi mới không?\n\nHành động này sẽ xóa cả dữ liệu trên Cloud Database!`)) return;
-
-    // 1. Xóa dữ liệu cục bộ
-    clearAllResults();
-
-    // 2. Xóa dữ liệu trên Cloud DB qua API
-    const secretKey = prompt('Nhập ADMIN_SECRET_KEY để xác nhận xóa dữ liệu Cloud Database:');
-    if (!secretKey) {
-      alert('Đã xóa dữ liệu cục bộ. Cloud DB không bị xóa do bạn không nhập key xác nhận.');
+    if (
+      !confirm(
+        "Bắt đầu kỳ thi mới? Bảng xếp hạng sẽ tính lại từ đầu; lịch sử kỳ thi cũ vẫn được lưu.",
+      )
+    )
       return;
-    }
-
     try {
-      const res = await fetch(`/api/results?key=${encodeURIComponent(secretKey)}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (data.success) {
-        alert(`Đã xóa thành công!\n- Dữ liệu cục bộ: Đã xóa\n- Cloud Database: Đã xóa ${data.deleted} bản ghi`);
-      } else {
-        alert(`Dữ liệu cục bộ đã xóa, nhưng Cloud DB thất bại: ${data.error}\n(Kiểm tra lại ADMIN_SECRET_KEY trong Vercel Environment Variables)`);
-      }
-    } catch (err) {
-      alert('Dữ liệu cục bộ đã xóa. Không kết nối được Cloud DB để xóa.');
+      await api("/api/results", { method: "DELETE" });
+      alert("Đã bắt đầu kỳ thi mới, giữ nguyên cấu hình và ngân hàng câu hỏi.");
+      void loadHistory();
+    } catch (e) {
+      alert((e as Error).message);
     }
   };
-
 
   // Chưa đăng nhập -> Hiện Form Đăng Nhập
   if (!isAuthenticated) {
@@ -206,7 +219,7 @@ export default function AdminPage() {
             Đăng Nhập Trang Quản Trị
           </h2>
           <p className="text-xs text-center text-slate-500 mb-6">
-            Mật khẩu mặc định hệ thống: <code className="bg-slate-100 px-1.5 py-0.5 rounded text-blue-600 font-mono">admin123</code>
+            Dùng mật khẩu quản trị được cấu hình trên server.
           </p>
 
           {loginError && (
@@ -243,15 +256,27 @@ export default function AdminPage() {
     );
   }
 
-  if (!config) return null;
+  if (!config)
+    return (
+      <p>
+        {loginError || "Đang tải cấu hình..."}
+        <button onClick={() => void loadAdminData()} className="ml-3 underline">
+          Thử lại
+        </button>
+      </p>
+    );
 
   return (
     <div className="space-y-8 pb-12">
       {/* Top Header Admin */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Bảng Điều Khiển Quản Trị</h1>
-          <p className="text-sm text-slate-500">Quản lý kỳ thi, ngân hàng câu hỏi, cấu hình đảo đề và quân số đơn vị</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Bảng Điều Khiển Quản Trị
+          </h1>
+          <p className="text-sm text-slate-500">
+            Quản lý kỳ thi, ngân hàng câu hỏi, cấu hình đảo đề và quân số đơn vị
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -273,6 +298,60 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <section className="bg-white p-6 rounded-2xl border border-slate-200 space-y-3">
+        <div className="flex flex-wrap justify-between gap-3">
+          <h2 className="font-bold">Lịch sử lượt thi các kỳ</h2>
+          <div className="flex gap-3">
+            <button
+              onClick={() => void loadHistory()}
+              className="text-blue-700"
+            >
+              Làm mới
+            </button>
+            <button
+              onClick={() =>
+                exportResultsToExcel(history, [], "Lich_Su_Thi.xlsx")
+              }
+              className="text-blue-700"
+            >
+              Xuất Excel
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-slate-500">
+          Hiển thị tối đa 500 lượt nộp gần nhất. Toàn bộ lịch sử được giữ trong
+          database.
+        </p>
+        {historyError && <p className="text-red-700">{historyError}</p>}
+        <div className="overflow-x-auto max-h-80">
+          <table className="w-full text-sm text-left">
+            <thead>
+              <tr>
+                <th className="p-2">Mã thí sinh</th>
+                <th className="p-2">Họ tên</th>
+                <th className="p-2">Điện thoại</th>
+                <th className="p-2">Điểm</th>
+                <th className="p-2">Thời điểm nộp</th>
+                <th className="p-2">Kỳ thi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {history.map((r) => (
+                <tr key={r.id} className="border-t">
+                  <td className="p-2">{r.userInfo.candidateCode}</td>
+                  <td className="p-2">{r.userInfo.fullName}</td>
+                  <td className="p-2">{r.userInfo.phone}</td>
+                  <td className="p-2">{r.score}/10</td>
+                  <td className="p-2">
+                    {new Date(r.submittedAt).toLocaleString("vi-VN")}
+                  </td>
+                  <td className="p-2">{r.examId}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* CỘT 1 & 2: CẤU HÌNH KỲ THI & ĐƠN VỊ */}
         <div className="lg:col-span-2 space-y-8">
@@ -285,21 +364,29 @@ export default function AdminPage() {
 
             <div className="grid grid-cols-1 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Tiêu Đề Kỳ Thi</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Tiêu Đề Kỳ Thi
+                </label>
                 <input
                   type="text"
                   value={config.title}
-                  onChange={(e) => setConfig({ ...config, title: e.target.value })}
+                  onChange={(e) =>
+                    setConfig({ ...config, title: e.target.value })
+                  }
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Mô Tả / Hướng Dẫn</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Mô Tả / Hướng Dẫn
+                </label>
                 <textarea
                   rows={2}
                   value={config.description}
-                  onChange={(e) => setConfig({ ...config, description: e.target.value })}
+                  onChange={(e) =>
+                    setConfig({ ...config, description: e.target.value })
+                  }
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -315,10 +402,17 @@ export default function AdminPage() {
                   min={1}
                   max={questions.length}
                   value={config.questionCount}
-                  onChange={(e) => setConfig({ ...config, questionCount: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      questionCount: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-slate-400 mt-1">Tổng ngân hàng hiện có {questions.length} câu</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Tổng ngân hàng hiện có {questions.length} câu
+                </p>
               </div>
 
               <div>
@@ -329,10 +423,17 @@ export default function AdminPage() {
                   type="number"
                   min={1}
                   value={config.totalTimeMinutes}
-                  onChange={(e) => setConfig({ ...config, totalTimeMinutes: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      totalTimeMinutes: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-slate-400 mt-1">Hết giờ hệ thống tự động thu nộp bài</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Hết giờ hệ thống tự động thu nộp bài
+                </p>
               </div>
 
               <div>
@@ -343,10 +444,17 @@ export default function AdminPage() {
                   type="number"
                   min={0}
                   value={config.timePerQuestionSeconds}
-                  onChange={(e) => setConfig({ ...config, timePerQuestionSeconds: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      timePerQuestionSeconds: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-slate-400 mt-1">Hết số giây sẽ tự động chuyển câu tiếp theo</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Hết số giây sẽ tự động chuyển câu tiếp theo
+                </p>
               </div>
 
               <div>
@@ -358,10 +466,17 @@ export default function AdminPage() {
                   min={1}
                   max={100}
                   value={config.passingScorePercent}
-                  onChange={(e) => setConfig({ ...config, passingScorePercent: Number(e.target.value) })}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      passingScorePercent: Number(e.target.value),
+                    })
+                  }
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                <p className="text-xs text-slate-400 mt-1">Mặc định: 80% (tương đương &ge;8.0 điểm)</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Mặc định: 80% (tương đương &ge;8.0 điểm)
+                </p>
               </div>
             </div>
 
@@ -371,7 +486,9 @@ export default function AdminPage() {
                 <input
                   type="checkbox"
                   checked={config.shuffleQuestions}
-                  onChange={(e) => setConfig({ ...config, shuffleQuestions: e.target.checked })}
+                  onChange={(e) =>
+                    setConfig({ ...config, shuffleQuestions: e.target.checked })
+                  }
                   className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-slate-800">
@@ -383,7 +500,9 @@ export default function AdminPage() {
                 <input
                   type="checkbox"
                   checked={config.shuffleOptions}
-                  onChange={(e) => setConfig({ ...config, shuffleOptions: e.target.checked })}
+                  onChange={(e) =>
+                    setConfig({ ...config, shuffleOptions: e.target.checked })
+                  }
                   className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-slate-800">
@@ -395,7 +514,9 @@ export default function AdminPage() {
                 <input
                   type="checkbox"
                   checked={config.allowReview}
-                  onChange={(e) => setConfig({ ...config, allowReview: e.target.checked })}
+                  onChange={(e) =>
+                    setConfig({ ...config, allowReview: e.target.checked })
+                  }
                   className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-slate-800">
@@ -407,12 +528,21 @@ export default function AdminPage() {
                 <input
                   type="checkbox"
                   checked={config.isOpen}
-                  onChange={(e) => setConfig({ ...config, isOpen: e.target.checked })}
+                  onChange={(e) =>
+                    setConfig({ ...config, isOpen: e.target.checked })
+                  }
                   className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                 />
                 <span className="text-sm font-medium text-slate-800">
-                  Trạng thái: <span className={config.isOpen ? 'text-emerald-600 font-bold' : 'text-red-500 font-bold'}>
-                    {config.isOpen ? 'ĐANG MỞ THI' : 'TẠM KHÓA THI'}
+                  Trạng thái:{" "}
+                  <span
+                    className={
+                      config.isOpen
+                        ? "text-emerald-600 font-bold"
+                        : "text-red-500 font-bold"
+                    }
+                  >
+                    {config.isOpen ? "ĐANG MỞ THI" : "TẠM KHÓA THI"}
                   </span>
                 </span>
               </label>
@@ -426,7 +556,9 @@ export default function AdminPage() {
                 <ListOrdered className="w-5 h-5 text-blue-600" />
                 Danh Sách Đơn Vị & Quân Số Đăng Ký
               </h3>
-              <span className="text-xs text-slate-500">Cơ sở tính Tỷ lệ tham gia thi đua</span>
+              <span className="text-xs text-slate-500">
+                Cơ sở tính Tỷ lệ tham gia thi đua
+              </span>
             </div>
 
             {/* Form thêm đơn vị */}
@@ -461,20 +593,26 @@ export default function AdminPage() {
                 <thead className="bg-slate-50 text-slate-600 text-xs uppercase font-semibold">
                   <tr>
                     <th className="py-2.5 px-4">Tên Đơn Vị</th>
-                    <th className="py-2.5 px-4 text-center w-36">Tổng Quân Số</th>
+                    <th className="py-2.5 px-4 text-center w-36">
+                      Tổng Quân Số
+                    </th>
                     <th className="py-2.5 px-4 text-center w-16">Xóa</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {config.units.map((u, idx) => (
                     <tr key={idx} className="hover:bg-slate-50">
-                      <td className="py-2.5 px-4 font-medium text-slate-800">{u.name}</td>
+                      <td className="py-2.5 px-4 font-medium text-slate-800">
+                        {u.name}
+                      </td>
                       <td className="py-2.5 px-4 text-center">
                         <input
                           type="number"
                           min={1}
                           value={u.targetCount}
-                          onChange={(e) => handleUpdateUnitTarget(idx, Number(e.target.value))}
+                          onChange={(e) =>
+                            handleUpdateUnitTarget(idx, Number(e.target.value))
+                          }
                           className="w-24 text-center px-2 py-1 rounded-lg border border-slate-200 text-sm"
                         />
                       </td>
@@ -503,13 +641,25 @@ export default function AdminPage() {
               Nạp File Excel Câu Hỏi Mới
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Cấu trúc chuẩn 7 cột: <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-bold">TT, Question, A, B, C, D, Correct</code> (giống như file <span className="font-semibold text-slate-700">NGHIQUYETDHXIII.xlsx</span>).
+              Cấu trúc chuẩn 7 cột:{" "}
+              <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-bold">
+                TT, Question, A, B, C, D, Correct
+              </code>{" "}
+              (giống như file{" "}
+              <span className="font-semibold text-slate-700">
+                NGHIQUYETDHXIII.xlsx
+              </span>
+              ).
             </p>
 
             <label className="block p-4 border-2 border-dashed border-emerald-300 rounded-xl hover:bg-emerald-50/50 cursor-pointer text-center transition-all">
               <Upload className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-              <span className="text-sm font-semibold text-emerald-700 block">Chọn file Excel (.xlsx) để nạp</span>
-              <span className="text-xs text-slate-400">Hệ thống sẽ cập nhật ngay ngân hàng đề</span>
+              <span className="text-sm font-semibold text-emerald-700 block">
+                Chọn file Excel (.xlsx) để nạp
+              </span>
+              <span className="text-xs text-slate-400">
+                Nhấn Lưu Cấu Hình sau khi nạp câu hỏi
+              </span>
               <input
                 type="file"
                 accept=".xlsx, .xls"
@@ -525,7 +675,10 @@ export default function AdminPage() {
             )}
 
             <div className="text-xs text-slate-500 border-t pt-3">
-              Ngân hàng hiện tại: <span className="font-bold text-blue-600">{questions.length} câu hỏi</span>
+              Ngân hàng hiện tại:{" "}
+              <span className="font-bold text-blue-600">
+                {questions.length} câu hỏi
+              </span>
             </div>
           </div>
 
@@ -544,10 +697,12 @@ export default function AdminPage() {
 
             <form onSubmit={handleChangePassword} className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Mật khẩu mới</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Mật khẩu mới
+                </label>
                 <input
                   type="password"
-                  placeholder="Ít nhất 6 ký tự"
+                  placeholder="Ít nhất 10 ký tự"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -555,7 +710,9 @@ export default function AdminPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Xác nhận mật khẩu</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Xác nhận mật khẩu
+                </label>
                 <input
                   type="password"
                   placeholder="Nhập lại mật khẩu mới"
@@ -578,17 +735,18 @@ export default function AdminPage() {
           <div className="bg-red-50/50 rounded-2xl border border-red-200 p-6 space-y-3">
             <h3 className="text-sm font-bold text-red-900 flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-red-600" />
-              Khu Vực Nguy Hiểm
+              Quản Lý Đợt Thi
             </h3>
             <p className="text-xs text-red-700 leading-relaxed">
-              Xóa sạch các lượt thi hiện tại của thí sinh để bắt đầu một đợt thi mới hoặc làm mới bảng xếp hạng.
+              Mở đợt thi mới và tính lại bảng xếp hạng. Lịch sử lượt thi cũ được
+              giữ trong database.
             </p>
             <button
               onClick={handleClearResults}
               className="w-full py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5"
             >
               <Trash2 className="w-4 h-4" />
-              <span>Reset Toàn Bộ Kết Quả Thi</span>
+              <span>Bắt Đầu Kỳ Thi Mới</span>
             </button>
           </div>
         </div>

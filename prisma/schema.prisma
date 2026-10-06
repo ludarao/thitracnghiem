@@ -35,3 +35,44 @@ model ExamResult {
   @@index([unit])
   @@index([submittedAt])
 }
+
+model QuizSettings {
+  id String @id @default("main")
+  config Json
+  questions Json
+  activeExamId String @default(cuid())
+}
+model Candidate {
+  id String @id @default(cuid())
+  phone String @unique
+  code String @unique
+  info Json
+}
+model Attempt {
+  id String @id @default(cuid())
+  token String @unique
+  candidateId String
+  examId String
+  info Json
+  config Json
+  questions Json
+  answers Json
+  currentIndex Int @default(0)
+  questionStartedAt DateTime @default(now())
+  startTime DateTime @default(now())
+  deadline DateTime
+  submittedAt DateTime?
+  result Json?
+  version Int @default(0)
+  @@index([examId, candidateId, submittedAt])
+}
+model AdminAccount {
+  id String @id @default("main")
+  passwordHash String
+  failedAttempts Int @default(0)
+  lockedUntil DateTime?
+}
+model AdminSession {
+  token String @id
+  expiresAt DateTime
+}

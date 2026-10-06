@@ -27,10 +27,11 @@ export interface ExamConfig {
   allowReview: boolean; // Cho phép xem lại đáp án sau khi nộp
   isOpen: boolean; // Mở/khóa kỳ thi
   units: UnitTarget[]; // Danh sách đơn vị và quân số
-  adminPasswordHash?: string; // Mật khẩu admin
 }
 
 export interface UserInfo {
+  phone?: string;
+  candidateCode?: string;
   fullName: string;
   rank: string; // Cấp bậc
   position: string; // Chức vụ

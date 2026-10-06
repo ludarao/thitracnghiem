@@ -1,17 +1,17 @@
-'use client';
+"use client";
 
-import React from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { BookOpen, BarChart3, Settings, Award } from 'lucide-react';
+import React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { BookOpen, BarChart3, Settings, Award } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
 
   const navItems = [
-    { label: 'Phòng Thi', href: '/', icon: BookOpen },
-    { label: 'Bảng Xếp Hạng', href: '/dashboard', icon: BarChart3 },
-    { label: 'Quản Trị Admin', href: '/admin', icon: Settings },
+    { label: "Phòng Thi", href: "/", icon: BookOpen },
+    { label: "Bảng Xếp Hạng", href: "/dashboard", icon: BarChart3 },
+    { label: "Quản Trị Admin", href: "/admin", icon: Settings },
   ];
 
   return (
@@ -41,15 +41,18 @@ export default function Navbar() {
               return (
                 <Link
                   key={item.href}
+                  aria-label={item.label}
                   href={item.href}
                   className={`flex items-center space-x-1.5 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700 shadow-sm'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      ? "bg-blue-50 text-blue-700 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-blue-600' : 'text-slate-500'}`} />
-                  <span>{item.label}</span>
+                  <Icon
+                    className={`w-4 h-4 ${isActive ? "text-blue-600" : "text-slate-500"}`}
+                  />
+                  <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               );
             })}
