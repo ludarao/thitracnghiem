@@ -5,7 +5,6 @@ export const DEFAULT_CONFIG: ExamConfig = {
   description:
     "Kiểm tra, đánh giá nhận thức cán bộ, đoàn viên thanh niên về Nghị quyết Đại hội Đoàn toàn quốc lần thứ XIII",
   totalTimeMinutes: 20, // 20 phút tổng bài thi
-  timePerQuestionSeconds: 0, // 0 = không giới hạn thời gian từng câu (hoặc ví dụ 45s nếu bật)
   questionCount: 30, // Lấy 30 câu ngẫu nhiên từ ngân hàng
   shuffleQuestions: true, // Đảo thứ tự câu hỏi
   shuffleOptions: true, // Đảo thứ tự đáp án A, B, C, D

@@ -438,27 +438,6 @@ export default function AdminPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Giới hạn thời gian từng câu (Giây, 0 = Không giới hạn)
-                </label>
-                <input
-                  type="number"
-                  min={0}
-                  value={config.timePerQuestionSeconds}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      timePerQuestionSeconds: Number(e.target.value),
-                    })
-                  }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-xs text-slate-400 mt-1">
-                  Hết số giây sẽ tự động chuyển câu tiếp theo
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Ngưỡng điểm Đạt (%) để tính chỉ số tập thể
                 </label>
                 <input

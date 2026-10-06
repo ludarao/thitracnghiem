@@ -127,7 +127,6 @@ async function processAttempt(req: NextRequest, mutate: boolean) {
       result,
       questions,
     } = state;
-    const per = config.timePerQuestionSeconds * 1000;
     return NextResponse.json(
       {
         success: true,
@@ -138,10 +137,6 @@ async function processAttempt(req: NextRequest, mutate: boolean) {
         currentIndex,
         serverTime,
         deadline: new Date(deadline).toISOString(),
-        questionDeadline:
-          per && currentIndex < questions.length
-            ? new Date(questionStartedAt + per).toISOString()
-            : null,
         result:
           result && !config.allowReview ? { ...result, answers: [] } : result,
         questions: questions.map((q, i) =>
@@ -150,9 +145,6 @@ async function processAttempt(req: NextRequest, mutate: boolean) {
             : {
                 ...q,
                 correct: undefined,
-                ...(per && !result && i !== currentIndex
-                  ? { question: "", options: { A: "", B: "", C: "", D: "" } }
-                  : {}),
               },
         ),
       },

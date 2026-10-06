@@ -18,7 +18,6 @@ import {
   RefreshCcw,
   BarChart,
   HelpCircle,
-  Timer,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -30,7 +29,6 @@ type Session = {
   currentIndex: number;
   serverTime: number;
   deadline: string;
-  questionDeadline: string | null;
   result: ExamResult | null;
 };
 export default function ExamPage() {
@@ -51,7 +49,6 @@ export default function ExamPage() {
     Record<number, string>
   >({});
   const [timeRemainingTotal, setTimeRemainingTotal] = useState(0);
-  const [questionTimer, setQuestionTimer] = useState(0);
   const [result, setResult] = useState<ExamResult | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -66,23 +63,11 @@ export default function ExamPage() {
     setUserInfo(data.userInfo);
     setExamQuestions(data.questions);
     setSelectedAnswers(data.answers);
-    if (data.config.timePerQuestionSeconds > 0)
-      setCurrentIndex(data.currentIndex);
     setTimeRemainingTotal(
       Math.max(
         0,
         Math.ceil((Date.parse(data.deadline) - data.serverTime) / 1000),
       ),
-    );
-    setQuestionTimer(
-      data.questionDeadline
-        ? Math.max(
-            0,
-            Math.ceil(
-              (Date.parse(data.questionDeadline) - data.serverTime) / 1000,
-            ),
-          )
-        : 0,
     );
     if (data.result) {
       setResult(data.result);
@@ -139,19 +124,7 @@ export default function ExamPage() {
       setTimeRemainingTotal(
         Math.max(0, Math.ceil((Date.parse(data.deadline) - now) / 1000)),
       );
-      setQuestionTimer(
-        data.questionDeadline
-          ? Math.max(
-              0,
-              Math.ceil((Date.parse(data.questionDeadline) - now) / 1000),
-            )
-          : 0,
-      );
-      if (
-        now >= Date.parse(data.deadline) ||
-        (data.questionDeadline && now >= Date.parse(data.questionDeadline))
-      )
-        void sync({ action: "sync" });
+      if (now >= Date.parse(data.deadline)) void sync({ action: "sync" });
     }, 1000);
     const poll = setInterval(() => void sync(), 10000);
     return () => {
@@ -243,7 +216,7 @@ export default function ExamPage() {
             )}
 
             {/* Thông số đề thi */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
+            <div className="grid grid-cols-3 gap-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
               <div>
                 <p className="text-xs text-slate-500 font-medium">Số câu thi</p>
                 <p className="text-base font-bold text-slate-800">
@@ -256,16 +229,6 @@ export default function ExamPage() {
                 </p>
                 <p className="text-base font-bold text-slate-800">
                   {config.totalTimeMinutes} phút
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 font-medium">
-                  Giới hạn mỗi câu
-                </p>
-                <p className="text-base font-bold text-slate-800">
-                  {config.timePerQuestionSeconds > 0
-                    ? `${config.timePerQuestionSeconds}s`
-                    : "Tự do"}
                 </p>
               </div>
               <div>
@@ -458,20 +421,6 @@ export default function ExamPage() {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Giới hạn thời gian từng câu nếu có */}
-              {config.timePerQuestionSeconds > 0 && (
-                <div
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold ${
-                    questionTimer <= 10
-                      ? "bg-red-50 text-red-600 animate-pulse"
-                      : "bg-amber-50 text-amber-700"
-                  }`}
-                >
-                  <Timer className="w-4 h-4" />
-                  <span>Câu: {questionTimer}s</span>
-                </div>
-              )}
-
               {/* Tổng thời gian */}
               <div
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-bold shadow-sm ${
@@ -534,11 +483,7 @@ export default function ExamPage() {
               return (
                 <button
                   key={key}
-                  disabled={
-                    busy ||
-                    timeRemainingTotal === 0 ||
-                    (config.timePerQuestionSeconds > 0 && questionTimer === 0)
-                  }
+                  disabled={busy || timeRemainingTotal === 0}
                   onClick={() => handleSelectOption(key)}
                   className={`w-full text-left p-4 rounded-xl border transition-all flex items-start gap-3.5 ${
                     isSelected
@@ -567,9 +512,7 @@ export default function ExamPage() {
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">
             <button
               onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
-              disabled={
-                currentIndex === 0 || config.timePerQuestionSeconds > 0 || busy
-              }
+              disabled={currentIndex === 0 || busy}
               className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -582,18 +525,9 @@ export default function ExamPage() {
 
             <button
               onClick={() =>
-                config.timePerQuestionSeconds > 0
-                  ? void sync({
-                      action: "next",
-                      questionId: currentQuestion.id,
-                    })
-                  : setCurrentIndex((prev) => Math.min(totalQ - 1, prev + 1))
+                setCurrentIndex((prev) => Math.min(totalQ - 1, prev + 1))
               }
-              disabled={
-                busy ||
-                (currentIndex === totalQ - 1 &&
-                  config.timePerQuestionSeconds === 0)
-              }
+              disabled={busy || currentIndex === totalQ - 1}
               className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               <span>Câu sau</span>
@@ -615,10 +549,7 @@ export default function ExamPage() {
               return (
                 <button
                   key={q.id}
-                  disabled={
-                    busy ||
-                    (config.timePerQuestionSeconds > 0 && idx !== currentIndex)
-                  }
+                  disabled={busy}
                   onClick={() => setCurrentIndex(idx)}
                   className={`h-9 rounded-lg text-xs font-bold transition-all ${
                     isCurrent

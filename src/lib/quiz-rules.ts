@@ -52,7 +52,6 @@ export function validateConfig(config: ExamConfig, count: number) {
   for (const [key, min, max] of [
     ["questionCount", 1, count],
     ["totalTimeMinutes", 1, 1440],
-    ["timePerQuestionSeconds", 0, 86400],
     ["passingScorePercent", 1, 100],
   ] as const) {
     if (
@@ -94,7 +93,6 @@ export function validateConfig(config: ExamConfig, count: number) {
     title: config.title.trim(),
     description: config.description,
     totalTimeMinutes: config.totalTimeMinutes,
-    timePerQuestionSeconds: config.timePerQuestionSeconds,
     questionCount: config.questionCount,
     shuffleQuestions: config.shuffleQuestions,
     shuffleOptions: config.shuffleOptions,

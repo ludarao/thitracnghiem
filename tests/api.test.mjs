@@ -363,25 +363,18 @@ test("API nguồn yêu cầu: chặn thao tác từ origin khác và token giả
   );
 });
 
-test("API khóa câu: đáp án muộn bị bỏ qua, câu đã khóa không còn nội dung để quay lại", async () => {
+test("API chỉ hạn tổng: cấu hình cũ không ẩn đề hoặc khóa câu", async () => {
   reset();
   config.config.timePerQuestionSeconds = 10;
   const { id, token } = await start();
-  const a = attempts.get(id);
-  a.questionStartedAt = new Date(Date.now() - 11000);
-  const response = await action(token, {
-    action: "answer",
-    questionId: 1,
-    option: "A",
-  });
-  const data = await response.json();
-  assert.equal(data.currentIndex, 1);
-  assert.ok(!data.answers["1"]);
-  assert.equal(data.questions[0].question, "");
+  attempts.get(id).questionStartedAt = new Date(Date.now() - 11000);
+  const data = await (
+    await action(token, { action: "answer", questionId: 1, option: "A" })
+  ).json();
+  assert.equal(data.answers[1], "A");
   assert.equal(data.questions[1].question, "Q2");
-  const deadline = data.questionDeadline;
-  const synced = await (await action(token, { action: "sync" })).json();
-  assert.equal(synced.questionDeadline, deadline);
+  assert.equal(data.result, null);
+  assert.ok(!("questionDeadline" in data));
 });
 test("API cấm xem lại: không trả đáp án đúng hoặc chi tiết đúng/sai sau khi nộp", async () => {
   reset();

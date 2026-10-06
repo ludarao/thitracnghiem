@@ -9,7 +9,7 @@
 - Số điện thoại đã có hồ sơ phải dùng cùng họ tên. Mã đã cấp được giữ nguyên. Chưa có OTP xác minh số điện thoại.
 - Có thể thi nhiều lần. Mỗi kỳ thi chỉ tính lượt **đã nộp cuối**, kể cả thấp hơn lượt trước; lượt chưa nộp không thay thế kết quả.
 - Bảng tập thể đếm số người, không đếm số lượt. Ngưỡng đạt dùng cấu hình được chốt lúc bắt đầu lượt thi.
-- Nếu bật thời gian từng câu: chỉ làm câu hiện tại, chuyển tiếp sẽ khóa câu, hết giờ tự khóa và chuyển câu. Không xem/sửa lại câu đã khóa. Tải lại trang không reset thời gian.
+- Chỉ giới hạn tổng thời gian toàn bài. Thí sinh có thể chuyển và sửa mọi câu trước hạn nộp. Cấu hình từng câu cũ không còn được áp dụng. Tải lại trang không reset hạn giờ.
 - Server chấm điểm và giữ hạn giờ. Lượt hết hạn khi đóng tab được chốt khi server nhận yêu cầu tiếp theo hoặc bảng xếp hạng làm mới; thời điểm nộp tính tại hạn giờ, không tại thời điểm xử lý muộn.
 - Trang kết quả chỉ hiển thị hoàn thành sau khi server xác nhận. Đáp án đang chọn được ghi ngay lên server; khi mất mạng, UI báo lỗi và cần chọn lại/thử lại. Không nhận đáp án gửi đến sau hạn giờ.
 - Trình duyệt chỉ giữ token phiên thi để tiếp tục sau khi tải lại; không dùng dữ liệu local làm bảng xếp hạng chung.

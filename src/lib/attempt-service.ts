@@ -71,20 +71,11 @@ export async function updateAttempt(
 /** Settle abandoned expired attempts too, so closing a tab cannot avoid automatic submission. */
 export async function settleExpiredAttempts(examId: string) {
   const attempts = await prisma.attempt.findMany({
-    where: { examId, submittedAt: null },
+    where: { examId, submittedAt: null, deadline: { lte: new Date() } },
   });
   const now = Date.now();
   for (const attempt of attempts) {
-    const cfg = attempt.config as unknown as ExamConfig;
-    const questions = attempt.questions as unknown as Question[];
-    const finalQuestionDeadline =
-      cfg.timePerQuestionSeconds > 0
-        ? attempt.questionStartedAt.getTime() +
-          (questions.length - attempt.currentIndex) *
-            cfg.timePerQuestionSeconds *
-            1000
-        : Infinity;
-    if (now >= Math.min(attempt.deadline.getTime(), finalQuestionDeadline))
+    if (now >= attempt.deadline.getTime())
       await updateAttempt({ id: attempt.id });
   }
 }

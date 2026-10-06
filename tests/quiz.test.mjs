@@ -84,50 +84,26 @@ test("Đảo đáp án giữ chính xác khóa gốc ngay cả khi hai lựa ch�
     );
   }
 });
-test("Hết giờ khóa câu, từ chối đáp án muộn và không reset hạn giờ khi đồng bộ", () => {
-  const answered = advanceAttempt(
-    state(),
-    { action: "answer", questionId: 1, option: "A" },
-    9000,
-  );
-  const expired = advanceAttempt(
-    answered,
-    { action: "answer", questionId: 1, option: "C" },
-    11000,
-  );
-  assert.equal(expired.currentIndex, 1);
-  assert.equal(expired.answers[1], "A");
-  assert.equal(expired.questionStartedAt, 11000);
-  const reload = advanceAttempt(expired, { action: "sync" }, 13000);
-  assert.equal(reload.questionStartedAt, 11000);
-  const tamper = advanceAttempt(
-    reload,
-    { action: "answer", questionId: 1, option: "D" },
-    14000,
-  );
-  assert.equal(tamper.answers[1], "A");
-});
-test("Không được trả lời câu tương lai, chuyển câu thủ công không được quay lại", () => {
+test("Chỉ hạn tổng: cấu hình từng câu cũ không khóa câu hoặc ngăn sửa đáp án", () => {
   let a = advanceAttempt(
-    state(),
-    { action: "answer", questionId: 2, option: "B" },
-    2000,
-  );
-  assert.deepEqual(a.answers, {});
-  a = advanceAttempt(a, { action: "next", questionId: 1 }, 3000);
-  assert.equal(a.currentIndex, 1);
-  a = advanceAttempt(a, { action: "next", questionId: 1 }, 4000);
-  assert.equal(a.currentIndex, 1);
-});
-test("Hết giờ câu cuối tự nộp, bỏ qua thao tác trễ", () => {
-  const a = advanceAttempt(
     state(),
     { action: "answer", questionId: 2, option: "B" },
     22000,
   );
-  assert.equal(a.result.correctCount, 0);
-  assert.equal(a.result.totalDurationSeconds, 20);
-  assert.equal(a.result.endTime, new Date(21000).toISOString());
+  assert.equal(a.result, null);
+  assert.equal(a.answers[2], "B");
+  a = advanceAttempt(
+    a,
+    { action: "answer", questionId: 1, option: "A" },
+    23000,
+  );
+  a = advanceAttempt(
+    a,
+    { action: "answer", questionId: 1, option: "D" },
+    24000,
+  );
+  assert.equal(a.answers[1], "D");
+  assert.equal(a.deadline, 61000);
 });
 test("Hạn tổng khóa đáp án và nộp bài theo thời gian server", () => {
   const a = advanceAttempt(

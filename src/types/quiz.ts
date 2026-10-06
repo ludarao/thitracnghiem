@@ -19,7 +19,6 @@ export interface ExamConfig {
   title: string;
   description: string;
   totalTimeMinutes: number; // Tổng thời gian thi cả bài (phút), 0 = không giới hạn
-  timePerQuestionSeconds: number; // Giới hạn thời gian từng câu (giây), 0 = không giới hạn
   questionCount: number; // Số câu lấy ra để thi (ví dụ: 30 / 50)
   shuffleQuestions: boolean; // Đảo thứ tự câu hỏi
   shuffleOptions: boolean; // Đảo thứ tự A, B, C, D
