@@ -82,8 +82,8 @@ export function validateConfig(config: ExamConfig, count: number) {
     if (
       typeof unit.name !== "string" ||
       !unit.name.trim() ||
-      !Number.isInteger(unit.targetCount) ||
-      unit.targetCount < 1 ||
+      !Number.isSafeInteger(unit.targetCount) ||
+      unit.targetCount < 0 ||
       names.has(unit.name.trim().toLowerCase())
     )
       throw new Error("Tên đơn vị hoặc quân số không hợp lệ.");

@@ -1,5 +1,29 @@
 import * as XLSX from "xlsx";
-import { Question } from "../types/quiz";
+import type { Question } from "../types/quiz";
+
+import { parseUnitRows } from "./unit-import";
+
+export async function parseExcelUnits(file: File) {
+  if (file.size > 5 * 1024 * 1024) throw new Error("File Excel tối đa 5 MB.");
+  const workbook = XLSX.read(await file.arrayBuffer(), { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  if (!sheet) throw new Error("File không có trang dữ liệu.");
+  return parseUnitRows(
+    XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" }),
+  );
+}
+
+export function downloadUnitTemplate() {
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ["Tên đơn vị", "Số lượng"],
+    ["Chi đoàn Đại đội 1", 45],
+    ["Chi đoàn Đại đội 2", ""],
+  ]);
+  sheet["!cols"] = [{ wch: 40 }, { wch: 15 }];
+  XLSX.utils.book_append_sheet(workbook, sheet, "Danh sách đơn vị");
+  XLSX.writeFile(workbook, "mau-danh-sach-don-vi.xlsx");
+}
 
 /**
  * Đọc file Excel cấu trúc 7 cột: TT, Question, A, B, C, D, Correct

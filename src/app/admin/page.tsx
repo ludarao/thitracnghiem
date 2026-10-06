@@ -2,7 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { api } from "../../lib/client";
-import { exportResultsToExcel, parseExcelQuestions } from "../../lib/excel";
+import {
+  exportResultsToExcel,
+  parseExcelQuestions,
+  parseExcelUnits,
+  downloadUnitTemplate,
+} from "../../lib/excel";
 import { ExamConfig, Question, UnitTarget } from "../../types/quiz";
 import {
   Lock,
@@ -52,7 +57,10 @@ export default function AdminPage() {
   const [config, setConfig] = useState<ExamConfig | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [newUnitName, setNewUnitName] = useState("");
-  const [newUnitTarget, setNewUnitTarget] = useState<number>(30);
+  const [newUnitTarget, setNewUnitTarget] = useState<number>(0);
+
+  const [unitsImportStatus, setUnitsImportStatus] = useState("");
+  const [unitsImportBusy, setUnitsImportBusy] = useState(false);
 
   // Mật khẩu mới
   const [newPassword, setNewPassword] = useState("");
@@ -149,9 +157,13 @@ export default function AdminPage() {
       alert("Đơn vị này đã tồn tại trong danh sách!");
       return;
     }
+    if (!Number.isSafeInteger(newUnitTarget) || newUnitTarget < 0) {
+      alert("Số lượng phải là số nguyên từ 0 trở lên.");
+      return;
+    }
     const updatedUnits: UnitTarget[] = [
       ...config.units,
-      { name: newUnitName.trim(), targetCount: Number(newUnitTarget) || 20 },
+      { name: newUnitName.trim(), targetCount: newUnitTarget },
     ];
     const updatedConfig = { ...config, units: updatedUnits };
     setConfig(updatedConfig);
@@ -174,6 +186,28 @@ export default function AdminPage() {
     updatedUnits[index].targetCount = count;
     const updatedConfig = { ...config, units: updatedUnits };
     setConfig(updatedConfig);
+  };
+
+  const handleUnitsImport = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file) return;
+    setUnitsImportBusy(true);
+    setUnitsImportStatus("Đang đọc danh sách đơn vị...");
+    try {
+      const units = await parseExcelUnits(file);
+      setConfig((current) => (current ? { ...current, units } : current));
+      setUnitsImportStatus(
+        `Đã nạp ${units.length} đơn vị. Bấm Lưu cấu hình để áp dụng danh sách mới.`,
+      );
+    } catch (error) {
+      setUnitsImportStatus(`Lỗi: ${(error as Error).message}`);
+    } finally {
+      setUnitsImportBusy(false);
+      input.value = "";
+    }
   };
 
   // Upload file excel câu hỏi mới
@@ -558,16 +592,52 @@ export default function AdminPage() {
             </div>
           </div>
 
-          {/* Quản lý danh sách đơn vị & quân số để tính tỷ lệ tham gia */}
+          {/* Quản lý danh sách đơn vị */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <ListOrdered className="w-5 h-5 text-blue-600" />
-                Danh Sách Đơn Vị & Quân Số Đăng Ký
+                Danh Sách Đơn Vị
               </h3>
               <span className="text-xs text-slate-500">
-                Cơ sở tính Tỷ lệ tham gia thi đua
+                Số lượng không bắt buộc
               </span>
+            </div>
+
+            <div className="rounded-xl bg-blue-50 p-4 space-y-3">
+              <p className="text-sm text-slate-600">
+                Excel gồm cột <strong>Tên đơn vị</strong> và{" "}
+                <strong>Số lượng</strong> (có thể bỏ trống, lưu là 0). Nhập file
+                sẽ thay toàn bộ danh sách đang chỉnh sửa. Bấm Lưu cấu hình để áp
+                dụng.
+              </p>
+              <div className="flex flex-wrap gap-3 items-center">
+                <label
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium ${unitsImportBusy ? "opacity-50" : "cursor-pointer hover:bg-blue-700"}`}
+                >
+                  <Upload className="w-4 h-4" /> Nhập danh sách Excel
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    aria-label="Nhập danh sách đơn vị từ Excel"
+                    className="sr-only"
+                    disabled={unitsImportBusy}
+                    onChange={handleUnitsImport}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={downloadUnitTemplate}
+                  className="text-sm font-medium text-blue-700 hover:underline"
+                >
+                  Tải file mẫu
+                </button>
+              </div>
+              {unitsImportStatus && (
+                <p role="status" className="text-sm text-slate-700">
+                  {unitsImportStatus}
+                </p>
+              )}
             </div>
 
             {/* Form thêm đơn vị */}
@@ -581,8 +651,9 @@ export default function AdminPage() {
               />
               <input
                 type="number"
-                min={1}
-                placeholder="Tổng quân số"
+                min={0}
+                aria-label="Số lượng đơn vị mới"
+                placeholder="Số lượng"
                 value={newUnitTarget}
                 onChange={(e) => setNewUnitTarget(Number(e.target.value))}
                 className="w-full sm:w-36 px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -602,9 +673,7 @@ export default function AdminPage() {
                 <thead className="bg-slate-50 text-slate-600 text-xs uppercase font-semibold">
                   <tr>
                     <th className="py-2.5 px-4">Tên Đơn Vị</th>
-                    <th className="py-2.5 px-4 text-center w-36">
-                      Tổng Quân Số
-                    </th>
+                    <th className="py-2.5 px-4 text-center w-36">Số Lượng</th>
                     <th className="py-2.5 px-4 text-center w-16">Xóa</th>
                   </tr>
                 </thead>
@@ -617,7 +686,8 @@ export default function AdminPage() {
                       <td className="py-2.5 px-4 text-center">
                         <input
                           type="number"
-                          min={1}
+                          min={0}
+                          aria-label={`Số lượng ${u.name}`}
                           value={u.targetCount}
                           onChange={(e) =>
                             handleUpdateUnitTarget(idx, Number(e.target.value))
