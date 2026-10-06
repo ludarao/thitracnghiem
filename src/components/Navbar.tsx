@@ -10,7 +10,7 @@ export default function Navbar() {
 
   const navItems = [
     { label: "Phòng Thi", href: "/", icon: BookOpen },
-    { label: "Bảng Xếp Hạng", href: "/dashboard", icon: BarChart3 },
+    { label: "Số lượng dự thi", href: "/dashboard", icon: BarChart3 },
     { label: "Quản Trị Admin", href: "/admin", icon: Settings },
   ];
 

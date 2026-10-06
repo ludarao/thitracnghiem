@@ -204,7 +204,7 @@ export default function AdminPage() {
   const handleClearResults = async () => {
     if (
       !confirm(
-        "Bắt đầu kỳ thi mới? Bảng xếp hạng sẽ tính lại từ đầu; lịch sử kỳ thi cũ vẫn được lưu.",
+        "Bắt đầu kỳ thi mới? Số lượng dự thi sẽ tính lại từ đầu; lịch sử kỳ thi cũ vẫn được lưu.",
       )
     )
       return;

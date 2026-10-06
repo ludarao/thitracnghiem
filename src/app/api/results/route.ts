@@ -8,7 +8,6 @@ import {
   failure,
   token,
 } from "../../../lib/server";
-import { calculateCollectiveRanks } from "../../../lib/storage";
 import type { ExamConfig, ExamResult } from "../../../types/quiz";
 const leaderboard = unstable_cache(
   async () => {
@@ -35,23 +34,50 @@ const leaderboard = unstable_cache(
       config: s.config,
       totalAttempts: Number(rows[0]?.total || 0),
       asOf: new Date().toISOString(),
-      ranks: calculateCollectiveRanks(
-        minimal as ExamResult[],
-        (s.config as unknown as ExamConfig).units,
-      ),
       totalParticipants: minimal.length,
-      averageScore: minimal.length
-        ? minimal.reduce((sum, r) => sum + r.score, 0) / minimal.length
-        : 0,
-      passedCount: minimal.filter((r) => r.isPassed).length,
       ids: minimal.map((r) => r.id),
     };
   },
   ["public-leaderboard-v2"],
   { revalidate: 60, tags: ["quiz-leaderboard"] },
 );
+const participationCounts = unstable_cache(
+  async () => {
+    const s =
+      (await prisma.quizSettings.findUnique({
+        where: { id: "main" },
+        select: { activeExamId: true, config: true },
+      })) ?? (await settings());
+    const rows = await prisma.$queryRaw<{ unit: string; count: bigint }[]>`
+ WITH latest AS (SELECT DISTINCT ON ("candidateId") "info" FROM "Attempt" WHERE "examId"=${s.activeExamId} AND "submittedAt" IS NOT NULL ORDER BY "candidateId","submittedAt" DESC,"id" DESC)
+ SELECT "info"->>'unit' AS unit, COUNT(*) AS count FROM latest GROUP BY "info"->>'unit'`;
+    const counts = new Map(rows.map((r) => [r.unit, Number(r.count)]));
+    const names = new Set([
+      ...(s.config as unknown as ExamConfig).units.map((u) => u.name),
+      ...counts.keys(),
+    ]);
+    return {
+      asOf: new Date().toISOString(),
+      units: [...names].map((unit) => ({
+        unit,
+        participantCount: counts.get(unit) || 0,
+      })),
+    };
+  },
+  ["quiz-participation-counts-v1"],
+  { revalidate: 60, tags: ["quiz-leaderboard"] },
+);
 export async function GET(req: NextRequest) {
   try {
+    if (req.nextUrl.searchParams.get("counts") === "1")
+      return NextResponse.json(
+        { success: true, ...(await participationCounts()) },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60",
+          },
+        },
+      );
     if (req.nextUrl.searchParams.get("history") === "1") {
       if (!(await isAdmin(req)))
         return NextResponse.json(

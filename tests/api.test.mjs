@@ -172,6 +172,18 @@ db.$queryRaw = async (strings, ...values) => {
     .filter((a) => a.examId === values[0] && a.submittedAt)
     .sort((a, b) => b.submittedAt - a.submittedAt || b.id.localeCompare(a.id));
   const seen = new Set();
+  if (strings.join(" ").includes("GROUP BY")) {
+    const latest = new Map();
+    for (const r of rows)
+      if (!latest.has(r.candidateId)) latest.set(r.candidateId, r);
+    const grouped = new Map();
+    for (const r of latest.values())
+      grouped.set(r.info.unit, (grouped.get(r.info.unit) || 0) + 1);
+    return [...grouped].map(([unit, count]) => ({
+      unit,
+      count: BigInt(count),
+    }));
+  }
   return rows
     .filter((a) => {
       if (seen.has(a.candidateId)) return false;
@@ -525,12 +537,38 @@ test("API 5001 người: response 100 người/trang, thống kê và tập th�
   assert.equal(first.results.length, 100);
   assert.equal(first.totalParticipants, 5001);
   assert.equal(first.totalAttempts, 5001);
-  assert.equal(first.averageScore, 5);
+  const counts = await (await results.GET(req("/api/results?counts=1"))).json();
   assert.equal(
-    first.ranks.find((r) => r.unit === userInfo.unit).participantCount,
+    counts.units.find((r) => r.unit === userInfo.unit).participantCount,
     5001,
   );
   const last = await (await results.GET(req("/api/results?page=51"))).json();
   assert.equal(last.results.length, 1);
   assert.equal(last.hasMore, false);
+});
+
+test("API số lượng: thi lại chỉ tính một người, theo đơn vị lượt cuối; đơn vị chưa thi là 0", async () => {
+  reset();
+  const first = await start();
+  await action(first.token, { action: "submit", answers: {} });
+  const second = await start({
+    ...userInfo,
+    unit: DEFAULT_CONFIG.units[1].name,
+  });
+  await new Promise((r) => setTimeout(r, 2));
+  await action(second.token, { action: "submit", answers: {} });
+  await start({ ...userInfo, phone: "0987654321" });
+  const data = await (await results.GET(req("/api/results?counts=1"))).json();
+  assert.equal(
+    data.units.find((r) => r.unit === userInfo.unit).participantCount,
+    0,
+  );
+  assert.equal(
+    data.units.find((r) => r.unit === DEFAULT_CONFIG.units[1].name)
+      .participantCount,
+    1,
+  );
+  assert.ok(!("results" in data));
+  assert.ok(!("ranks" in data));
+  assert.ok(!("config" in data));
 });

@@ -366,8 +366,8 @@ export default function ExamPage() {
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300"
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  Dùng cùng họ tên và số điện thoại để thi lại. Bảng xếp hạng
-                  lấy lượt nộp cuối.
+                  Dùng cùng họ tên và số điện thoại để thi lại. Kết quả ghi nhận
+                  lượt nộp cuối.
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -432,8 +432,7 @@ export default function ExamPage() {
                   </select>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  * Kết quả thi của bạn sẽ được tính trực tiếp vào bảng xếp hạng
-                  thi đua của Đơn vị này.
+                  * Bạn được ghi nhận đã dự thi tại đơn vị của lượt nộp cuối.
                 </p>
               </div>
 
@@ -719,7 +718,7 @@ export default function ExamPage() {
               className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
             >
               <BarChart className="w-4 h-4" />
-              <span>Xem Bảng Xếp Hạng Tập Thể</span>
+              <span>Xem Số Lượng Dự Thi</span>
             </Link>
 
             <button
