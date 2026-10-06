@@ -1,0 +1,552 @@
+[
+  {
+    "id": 1,
+    "question": "Khẩu hiệu hành động của Đại hội đại biểu toàn quốc Đoàn TNCS Hồ Chí Minh lần thứ XIII, nhiệm kỳ 2026 - 2031 là gì?",
+    "options": {
+      "A": "“Bản lĩnh tự cường - Tiên phong sáng tạo - Khát vọng cống hiến - Làm chủ tương lai”.",
+      "B": "“Tuổi trẻ Việt Nam đoàn kết - sáng tạo - hội nhập - phát triển bền vững”.",
+      "C": "“Thanh niên Việt Nam tiên phong - bản lĩnh - trách nhiệm - khát vọng”.",
+      "D": "“Đoàn kết, tiên phong, sáng tạo, phát triển đất nước phồn vinh, hạnh phúc”."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 2,
+    "question": "Đại hội đại biểu toàn quốc Đoàn TNCS Hồ Chí Minh lần thứ XIII xác định tỷ lệ đoàn kết tập hợp thanh niên nhiệm kỳ 2026 - 2031 đạt bao nhiêu?",
+    "options": {
+      "A": "Đạt 75%.",
+      "B": "Đạt 80%.",
+      "C": "Đạt 68%.",
+      "D": "Đạt 70%."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 3,
+    "question": "Trong nhiệm kỳ 2026 - 2031, chỉ tiêu về số lượt đoàn viên, thanh niên tham gia hoạt động tình nguyện do Đoàn, Hội tổ chức là bao nhiêu?",
+    "options": {
+      "A": "50 triệu lượt.",
+      "B": "70 triệu lượt.",
+      "C": "100 triệu lượt.",
+      "D": "150 triệu lượt."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 4,
+    "question": "Chỉ tiêu trọng tâm về công trình thanh niên tham gia phát triển, ứng dụng khoa học công nghệ, đổi mới sáng tạo và chuyển đổi số trong nhiệm kỳ 2026 - 2031 là gì?",
+    "options": {
+      "A": "150.000 công trình thanh niên các cấp.",
+      "B": "50.000 công trình thanh niên các cấp.",
+      "C": "80.000 công trình thanh niên các cấp.",
+      "D": "100.000 công trình thanh niên các cấp."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 5,
+    "question": "Hằng năm, 100% Đoàn xã, phường, đặc khu được giao thực hiện chỉ tiêu nào về môi trường?",
+    "options": {
+      "A": "Xóa ít nhất 01 điểm đen về ô nhiễm môi trường và duy trì bền vững kết quả đã đạt được.",
+      "B": "Trồng mới ít nhất 01 triệu cây xanh tại địa phương.",
+      "C": "Tổ chức ít nhất 01 chiến dịch truyền thông chống rác thải nhựa cấp xã.",
+      "D": "Thành lập ít nhất 01 câu lạc bộ thanh niên bảo vệ môi trường."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 6,
+    "question": "Hằng năm, 100% Đoàn cấp tỉnh phải triển khai tối thiểu 01 công trình thanh niên thuộc nội dung nào?",
+    "options": {
+      "A": "Hỗ trợ số hóa toàn bộ di tích lịch sử cấp tỉnh.",
+      "B": "Hỗ trợ xây dựng hoặc nâng cấp hạ tầng dân sinh tại khu vực biên giới, biển đảo.",
+      "C": "Hỗ trợ xây dựng mới một trung tâm khởi nghiệp sáng tạo cấp tỉnh.",
+      "D": "Hỗ trợ xây dựng ít nhất một trường phổ thông ngoài công lập."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 7,
+    "question": "Chỉ tiêu về mô hình thanh niên tham gia giữ gìn an ninh trật tự, phòng chống tội phạm tại địa phương được xác định như thế nào?",
+    "options": {
+      "A": "Hằng năm, 70% Đoàn cấp xã triển khai mô hình.",
+      "B": "Hằng năm, 80% Đoàn cấp xã triển khai mô hình.",
+      "C": "Hằng năm, 100% Đoàn cấp xã triển khai mô hình.",
+      "D": "Hằng năm, 50% Đoàn cấp xã triển khai mô hình."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 8,
+    "question": "Chỉ tiêu về thanh thiếu nhi tham gia hoạt động nâng cao năng lực số và sử dụng khoa học công nghệ do Đoàn, Hội, Đội tổ chức là bao nhiêu?",
+    "options": {
+      "A": "100%.",
+      "B": "Ít nhất 60%.",
+      "C": "Ít nhất 70%.",
+      "D": "Ít nhất 80%."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 9,
+    "question": "Trong nhiệm kỳ 2026 - 2031, ít nhất bao nhiêu dự án khởi nghiệp đổi mới sáng tạo của thanh niên được hỗ trợ đầu ra sản phẩm/dịch vụ?",
+    "options": {
+      "A": "750 dự án.",
+      "B": "1.000 dự án.",
+      "C": "500 dự án.",
+      "D": "650 dự án."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 10,
+    "question": "Chỉ tiêu về thanh thiếu nhi tham gia các chương trình bồi dưỡng, nâng cao năng lực sử dụng ngoại ngữ và hội nhập quốc tế là bao nhiêu?",
+    "options": {
+      "A": "7 triệu thanh thiếu nhi.",
+      "B": "10 triệu thanh thiếu nhi.",
+      "C": "12 triệu thanh thiếu nhi.",
+      "D": "5 triệu thanh thiếu nhi."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 11,
+    "question": "Đại hội XIII xác định mục tiêu có bao nhiêu thiếu nhi có hoàn cảnh khó khăn được tổ chức Đoàn, Hội, Đội các cấp hỗ trợ?",
+    "options": {
+      "A": "5 triệu thiếu nhi.",
+      "B": "3 triệu thiếu nhi.",
+      "C": "4 triệu thiếu nhi.",
+      "D": "4,5 triệu thiếu nhi."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 12,
+    "question": "Hằng năm, thông tin đoàn viên, cán bộ Đoàn các cấp cần được số hóa trên phần mềm nào?",
+    "options": {
+      "A": "Ứng dụng Thanh niên Việt Nam.",
+      "B": "Cổng thông tin tình nguyện quốc gia.",
+      "C": "Hệ thống cơ sở dữ liệu thiếu nhi toàn quốc.",
+      "D": "Phần mềm Quản lý đoàn viên."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 13,
+    "question": "Đại hội XIII đặt chỉ tiêu bao nhiêu phần trăm đoàn viên xếp loại hoàn thành xuất sắc nhiệm vụ?",
+    "options": {
+      "A": "50%.",
+      "B": "60%.",
+      "C": "30%.",
+      "D": "40%."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 14,
+    "question": "Trong nhiệm kỳ 2026 - 2031, số đoàn viên ưu tú được giới thiệu cho Đảng xem xét kết nạp là bao nhiêu?",
+    "options": {
+      "A": "700 nghìn đoàn viên ưu tú.",
+      "B": "01 triệu đoàn viên ưu tú.",
+      "C": "1,5 triệu đoàn viên ưu tú.",
+      "D": "500 nghìn đoàn viên ưu tú."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 15,
+    "question": "Kết quả thực hiện chỉ tiêu nhiệm kỳ 2022 - 2026 được Văn kiện Đại hội XIII đánh giá như thế nào?",
+    "options": {
+      "A": "10/12 chỉ tiêu đạt và vượt.",
+      "B": "11/12 chỉ tiêu đạt và vượt.",
+      "C": "12/12 chỉ tiêu đạt và vượt.",
+      "D": "12/13 chỉ tiêu đạt và vượt."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 16,
+    "question": "Giai đoạn 2022 - 2026, kết quả thanh niên được tuyên truyền, phổ biến nghị quyết, chủ trương, chính sách, pháp luật đạt bao nhiêu?",
+    "options": {
+      "A": "85%.",
+      "B": "90%.",
+      "C": "80%.",
+      "D": "83%."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 17,
+    "question": "Giai đoạn 2022 - 2026, số lượt đoàn viên, thanh niên tham gia hoạt động tình nguyện do Đoàn, Hội tổ chức đạt kết quả nào?",
+    "options": {
+      "A": "68.972.738 lượt.",
+      "B": "78.972.738 lượt.",
+      "C": "50.972.738 lượt.",
+      "D": "58.972.738 lượt."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 18,
+    "question": "Giai đoạn 2022 - 2026, kết quả thanh thiếu nhi được tiếp cận hoạt động nâng cao năng lực số đạt bao nhiêu?",
+    "options": {
+      "A": "70,5%.",
+      "B": "74,5%.",
+      "C": "83,25%.",
+      "D": "67,3%."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 19,
+    "question": "Giai đoạn 2022 - 2026, số cây xanh được đoàn viên, thanh niên tham gia trồng mới là bao nhiêu?",
+    "options": {
+      "A": "131.499.669 cây.",
+      "B": "100.000.000 cây.",
+      "C": "101.499.669 cây.",
+      "D": "103.499.669 cây."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 20,
+    "question": "Giai đoạn 2022 - 2026, kết quả hỗ trợ thanh niên vay vốn để khởi nghiệp, lập nghiệp, làm kinh tế đạt bao nhiêu?",
+    "options": {
+      "A": "15.000 tỷ đồng.",
+      "B": "17.392 tỷ đồng.",
+      "C": "10.892 tỷ đồng.",
+      "D": "12.892 tỷ đồng."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 21,
+    "question": "Giai đoạn 2022 - 2026, số dự án khởi nghiệp sáng tạo của thanh niên được tổ chức Đoàn hỗ trợ là bao nhiêu?",
+    "options": {
+      "A": "9.029 dự án.",
+      "B": "11.129 dự án.",
+      "C": "7.000 dự án.",
+      "D": "8.029 dự án."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 22,
+    "question": "Giai đoạn 2022 - 2026, có bao nhiêu thiếu nhi có hoàn cảnh khó khăn được tổ chức Đoàn các cấp hỗ trợ?",
+    "options": {
+      "A": "4.000.000 thiếu nhi.",
+      "B": "4.541.322 thiếu nhi.",
+      "C": "5.441.322 thiếu nhi.",
+      "D": "3.000.000 thiếu nhi."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 23,
+    "question": "Giai đoạn 2022 - 2026, tỷ lệ đoàn kết tập hợp thanh niên đạt kết quả bao nhiêu?",
+    "options": {
+      "A": "80%.",
+      "B": "68%.",
+      "C": "69,8%.",
+      "D": "70,5%."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 24,
+    "question": "Nhiệm vụ thứ nhất đồng chí Tổng Bí thư, Chủ tịch nước Tô Lâm đặt ra cho Đoàn là gì?",
+    "options": {
+      "A": "Tập trung phát triển tổ chức Đoàn trong doanh nghiệp ngoài nhà nước và khu vực phi chính thức.",
+      "B": "Đẩy mạnh các hoạt động tình nguyện quốc tế, mở rộng hợp tác với các tổ chức khu vực.",
+      "C": "Hoàn thiện hệ thống dữ liệu đoàn viên và cán bộ Đoàn trên nền tảng số.",
+      "D": "Làm sâu sắc hơn công tác giáo dục lý tưởng cách mạng, bồi đắp lòng yêu nước, bản lĩnh chính trị, đạo đức, lối sống và khát vọng cống hiến cho thanh niên."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 25,
+    "question": "Theo chuyên đề về phát biểu chỉ đạo, giáo dục lý tưởng cho thanh niên phải hướng tới yêu cầu nào?",
+    "options": {
+      "A": "Hiểu đúng, tin mãnh liệt, hành động tự giác.",
+      "B": "Học nhanh, thi đạt, hoàn thành chỉ tiêu.",
+      "C": "Nói đúng, làm đủ, báo cáo kịp thời.",
+      "D": "Biết nghị quyết, thuộc khẩu hiệu, tham gia phong trào."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 26,
+    "question": "Nhiệm vụ thứ hai đồng chí Tổng Bí thư, Chủ tịch nước Tô Lâm đặt ra nhấn mạnh nội dung nào?",
+    "options": {
+      "A": "Xây dựng thế hệ thanh niên tập trung vào các hoạt động giao lưu, trao đổi quốc tế.",
+      "B": "Xây dựng thế hệ thanh niên Việt Nam học tập suốt đời, làm chủ khoa học - công nghệ, tiên phong đổi mới sáng tạo, chuyển đổi số và hội nhập quốc tế.",
+      "C": "Xây dựng thế hệ thanh niên chủ yếu tập trung rèn luyện thể chất và phát triển phong trào văn hóa nghệ thuật.",
+      "D": "Xây dựng thế hệ thanh niên ưu tiên khởi nghiệp nông nghiệp, phát triển kinh tế tập thể và OCOP."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 27,
+    "question": "Theo nhiệm vụ thứ ba, phong trào thanh niên cần đổi mới theo hướng nào?",
+    "options": {
+      "A": "Tập trung vào quy mô tham gia, số lượng hoạt động và hình ảnh phong trào.",
+      "B": "Ưu tiên các hoạt động ngắn hạn, dễ tổ chức và dễ tổng hợp báo cáo.",
+      "C": "Thiết thực, chuyên sâu, có sản phẩm cụ thể và tác động xã hội rõ ràng.",
+      "D": "Rộng khắp, thường xuyên, có nhiều khẩu hiệu và truyền thông mạnh."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 28,
+    "question": "Theo chỉ đạo trong chuyên đề 1, trước khi triển khai một hoạt động phong trào, cần trả lời rõ những câu hỏi nào?",
+    "options": {
+      "A": "Tổ chức ở đâu, ai dự, truyền thông thế nào, kinh phí bao nhiêu, báo cáo khi nào.",
+      "B": "Có bao nhiêu người tham gia, có bao nhiêu ảnh đẹp, có bao nhiêu bài đăng, có giấy mời chưa.",
+      "C": "Đơn vị nào chủ trì, đơn vị nào phối hợp, có khẩu hiệu gì, có phông nền gì.",
+      "D": "Phục vụ ai, giải quyết việc gì, tạo sản phẩm gì, để lại mô hình gì, phát hiện cán bộ nào, bồi dưỡng đoàn viên ưu tú nào."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 29,
+    "question": "Nhiệm vụ thứ năm trong phát biểu chỉ đạo đặt yêu cầu xây dựng Đoàn như thế nào?",
+    "options": {
+      "A": "Vững mạnh toàn diện, thật sự là đội dự bị tin cậy của Đảng và môi trường rèn luyện cán bộ trẻ cho hệ thống chính trị.",
+      "B": "Vững mạnh về truyền thông, có nhiều hoạt động trực tuyến và nhiều mô hình sinh hoạt mới.",
+      "C": "Vững mạnh về tài chính, tự chủ nguồn lực và mở rộng đối tác xã hội hóa.",
+      "D": "Vững mạnh về phong trào văn hóa, thể thao và hoạt động tình nguyện thường xuyên."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 30,
+    "question": "Trong công tác tuyên truyền, giáo dục nhiệm kỳ mới, quan điểm khái quát được nêu là gì?",
+    "options": {
+      "A": "Tập trung xây dựng các sản phẩm tuyên truyền ngắn hạn theo từng sự kiện.",
+      "B": "Đổi mới mạnh mẽ nội dung, phương thức; lấy thanh niên làm trung tâm, chủ thể và thước đo hiệu quả.",
+      "C": "Tăng cường tổ chức nhiều lớp học tập nghị quyết trực tiếp, coi số lượng lớp là thước đo chủ yếu.",
+      "D": "Ưu tiên truyền đạt một chiều để bảo đảm thống nhất nội dung và tốc độ triển khai."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 31,
+    "question": "Một điểm mới nổi bật trong công tác tuyên truyền, giáo dục theo Chuyên đề 2 là gì?",
+    "options": {
+      "A": "Chỉ tập trung giáo dục truyền thống, chưa đặt yêu cầu về dữ liệu lớn và AI.",
+      "B": "Không còn kiểm tra, đánh giá kết quả học tập nghị quyết trên môi trường trực tuyến.",
+      "C": "Nắm bắt và định hướng dư luận xã hội trong thanh niên được tách thành nhiệm vụ riêng.",
+      "D": "Giảm ứng dụng nền tảng số để tăng sinh hoạt trực tiếp tại chi đoàn."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 32,
+    "question": "Chương trình hành động đặt mục tiêu ít nhất bao nhiêu đoàn viên, thanh niên cài đặt và sử dụng ứng dụng Thanh niên Việt Nam?",
+    "options": {
+      "A": "80%.",
+      "B": "50%.",
+      "C": "60%.",
+      "D": "70%."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 33,
+    "question": "Trong công tác cán bộ Đoàn, chủ trương “1+2” được hiểu theo hướng nào?",
+    "options": {
+      "A": "Gắn cán bộ Đoàn với cơ sở, mỗi đợt đi cơ sở có ít nhất 01 sản phẩm cụ thể.",
+      "B": "Mỗi cán bộ Đoàn phụ trách 01 chi đoàn và 02 tổ hội nghề nghiệp.",
+      "C": "Mỗi cán bộ Đoàn tham gia 01 lớp chính trị và 02 lớp kỹ năng số.",
+      "D": "Mỗi cán bộ Đoàn giới thiệu 01 đoàn viên ưu tú và 02 hội viên mới."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 34,
+    "question": "Hội thi Bí thư Đoàn cơ sở giỏi toàn quốc được định hướng tổ chức theo chu kỳ nào?",
+    "options": {
+      "A": "Hằng năm.",
+      "B": "2 năm 1 lần.",
+      "C": "3 năm 1 lần.",
+      "D": "5 năm 1 lần."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 35,
+    "question": "Nguyên tắc quản lý đoàn viên được nêu trong Chuyên đề 2 là gì?",
+    "options": {
+      "A": "Rõ - thật - chắc - bền.",
+      "B": "Đúng - trúng - sâu - sát.",
+      "C": "Đúng - đủ - sạch - sống.",
+      "D": "Nhanh - gọn - số - mở."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 36,
+    "question": "Trong Nghị quyết Đại hội XIII, có bao nhiêu chỉ tiêu liên quan đến công tác đoàn viên được Chuyên đề 2 nêu rõ?",
+    "options": {
+      "A": "03 chỉ tiêu.",
+      "B": "04 chỉ tiêu.",
+      "C": "01 chỉ tiêu.",
+      "D": "02 chỉ tiêu."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 37,
+    "question": "Vào những thời điểm nào hằng năm, Trung ương Đoàn chốt số liệu chỉ tiêu 100% thông tin đoàn viên được số hóa?",
+    "options": {
+      "A": "30/6 và 30/12.",
+      "B": "31/3 và 30/9.",
+      "C": "01/6 và 01/12.",
+      "D": "30/5 và 30/11."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 38,
+    "question": "Vào ngày nào hằng năm, Trung ương Đoàn chốt số lượng đoàn viên đủ điều kiện đánh giá, xếp loại?",
+    "options": {
+      "A": "30/12.",
+      "B": "30/5.",
+      "C": "30/6.",
+      "D": "30/11."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 39,
+    "question": "Trong công tác kiểm tra, giám sát, hằng năm các cấp bộ Đoàn lựa chọn ít nhất bao nhiêu nội dung để giám sát xã hội?",
+    "options": {
+      "A": "Ít nhất 03 nội dung.",
+      "B": "Ít nhất 04 nội dung.",
+      "C": "Ít nhất 01 nội dung.",
+      "D": "Ít nhất 02 nội dung."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 40,
+    "question": "Phong trào được Đại hội XIII xác định triển khai trong nhiệm kỳ mới là gì?",
+    "options": {
+      "A": "“Thanh niên Việt Nam tình nguyện vì cộng đồng”.",
+      "B": "“Tuổi trẻ sáng tạo xây dựng đất nước”.",
+      "C": "“Thanh niên Việt Nam hội nhập và phát triển”.",
+      "D": "“Tuổi trẻ Việt Nam tiên phong trong kỷ nguyên mới”."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 41,
+    "question": "Chương trình được Đại hội XIII xác định triển khai cùng phong trào nhiệm kỳ mới là gì?",
+    "options": {
+      "A": "“Phát triển toàn diện thanh niên Việt Nam”.",
+      "B": "“Đồng hành với thanh niên trong học tập”.",
+      "C": "“Đồng hành với thanh niên khởi nghiệp, lập nghiệp”.",
+      "D": "“Rèn luyện đoàn viên trong kỷ nguyên số”."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 42,
+    "question": "Nhiệm vụ đột phá trong nội hàm tiên phong phát triển khoa học công nghệ, đổi mới sáng tạo và chuyển đổi số là gì?",
+    "options": {
+      "A": "Tập trung số hóa toàn bộ hồ sơ hành chính của tổ chức Đoàn trong năm đầu nhiệm kỳ.",
+      "B": "Hỗ trợ nâng cao năng lực số, trí tuệ nhân tạo, khoa học công nghệ, góp phần nâng cao chất lượng nguồn nhân lực trẻ.",
+      "C": "Tổ chức nhiều cuộc thi sáng tạo cấp cơ sở, lấy số lượng ý tưởng làm trọng tâm.",
+      "D": "Xây dựng trung tâm đổi mới sáng tạo tại tất cả xã, phường, đặc khu trong nhiệm kỳ."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 43,
+    "question": "Phong trào “Bình dân học vụ số” trong Chuyên đề 3 bao gồm các hợp phần nào?",
+    "options": {
+      "A": "“Dữ liệu mở”, “Công dân số”, “Chính quyền số”.",
+      "B": "“Tin học trẻ”, “Sáng tạo trẻ”, “Chuyển đổi xanh”.",
+      "C": "“Bình dân học AI”, “Phổ cập kỹ năng số”, “An toàn mạng cho thanh niên”.",
+      "D": "“Học ngoại ngữ số”, “Khởi nghiệp số”, “Tình nguyện số”."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 44,
+    "question": "Chương trình “01 Doanh nhân trẻ kèm cặp 02 Doanh nhân khởi nghiệp” thuộc nhóm nội dung nào?",
+    "options": {
+      "A": "Tiên phong hội nhập quốc tế.",
+      "B": "Tiên phong tham gia bảo vệ Tổ quốc.",
+      "C": "Phát triển toàn diện thanh niên trong học tập.",
+      "D": "Tiên phong khởi nghiệp lập nghiệp, phát triển kinh tế đất nước."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 45,
+    "question": "Trong hoạt động tình nguyện, mỗi tỉnh, thành đoàn được yêu cầu lựa chọn ít nhất nội dung nào để nhân rộng?",
+    "options": {
+      "A": "Ít nhất một mô hình tình nguyện an sinh xã hội và xây dựng ít nhất ba dự án tình nguyện dài hạn.",
+      "B": "Ít nhất hai mô hình tình nguyện số và xây dựng một trung tâm tình nguyện cấp tỉnh.",
+      "C": "Ít nhất một đội hình văn nghệ tình nguyện và một diễn đàn thanh niên.",
+      "D": "Ít nhất ba mô hình khởi nghiệp xanh và một dự án OCOP thanh niên."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 46,
+    "question": "Đề án “Tuổi trẻ Việt Nam đồng hành với thanh thiếu nhi vùng biên giới giai đoạn 2025 - 2030” tập trung triển khai tại bao nhiêu xã biên giới?",
+    "options": {
+      "A": "200 xã biên giới.",
+      "B": "248 xã biên giới.",
+      "C": "300 xã biên giới.",
+      "D": "148 xã biên giới."
+    },
+    "correct": "B"
+  },
+  {
+    "id": 47,
+    "question": "Thói quen 4T trong hoạt động bảo vệ môi trường được nêu gồm những nội dung nào?",
+    "options": {
+      "A": "Tiết kiệm - Trồng cây - Tái tạo - Tình nguyện.",
+      "B": "Tự giác - Tự quản - Tự học - Tự rèn.",
+      "C": "Từ chối - Tiết giảm - Tái sử dụng - Tái chế.",
+      "D": "Tuyên truyền - Tập hợp - Tổ chức - Tổng kết."
+    },
+    "correct": "C"
+  },
+  {
+    "id": 48,
+    "question": "Một điểm phát triển mới trong nội dung tiên phong tham gia bảo vệ Tổ quốc và an ninh trật tự trên địa bàn là gì?",
+    "options": {
+      "A": "Chỉ tập trung vào tuyên truyền nghĩa vụ quân sự trong trường học.",
+      "B": "Giảm các hoạt động hướng về biên giới, biển đảo để ưu tiên đô thị.",
+      "C": "Tách lực lượng thanh niên quân đội, công an khỏi hoạt động địa bàn dân cư.",
+      "D": "Mở rộng yêu cầu bảo vệ Tổ quốc trên cả không gian thực và không gian số."
+    },
+    "correct": "D"
+  },
+  {
+    "id": 49,
+    "question": "Đối với công tác quốc tế thanh niên, điểm mới nào được Chuyên đề 4 nhấn mạnh?",
+    "options": {
+      "A": "Đưa hội nhập quốc tế trở thành một nội dung của tinh thần tiên phong trong kỷ nguyên mới.",
+      "B": "Chỉ duy trì hoạt động giao lưu hữu nghị truyền thống, chưa gắn với phát triển đất nước.",
+      "C": "Thu hẹp đối tác quốc tế để tập trung vào hoạt động trong nước.",
+      "D": "Tách công tác quốc tế thanh niên khỏi chuyển đổi số và đổi mới sáng tạo."
+    },
+    "correct": "A"
+  },
+  {
+    "id": 50,
+    "question": "Phương châm “3 Dễ - 3 Rõ - 3 Đo” trong tổ chức triển khai Nghị quyết được hiểu đúng là gì?",
+    "options": {
+      "A": "Dễ phân công, dễ báo cáo, dễ nhân rộng; rõ kế hoạch, rõ văn bản, rõ thời gian; đo hoạt động, đo hội nghị, đo phong trào.",
+      "B": "Dễ hiểu, dễ nhớ, dễ thực hiện; rõ mục tiêu, rõ trách nhiệm, rõ thời hạn; đo đầu vào, đo đầu ra, đo tác động.",
+      "C": "Dễ học, dễ thi, dễ kiểm tra; rõ người, rõ việc, rõ kinh phí; đo số lớp, đo số ảnh, đo số tin bài.",
+      "D": "Dễ tuyên truyền, dễ vận động, dễ tổng kết; rõ địa bàn, rõ khẩu hiệu, rõ thành phần; đo lượt xem, đo lượt thích, đo lượt chia sẻ."
+    },
+    "correct": "B"
+  }
+]
