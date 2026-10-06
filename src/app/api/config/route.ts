@@ -1,12 +1,30 @@
+import { unstable_cache, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { settings, isAdmin, checkOrigin, failure } from "../../../lib/server";
 import { prisma } from "../../../lib/prisma";
 import { validateConfig, validateQuestions } from "../../../lib/quiz-rules";
 import type { ExamConfig } from "../../../types/quiz";
+const publicConfig = unstable_cache(
+  async () => {
+    const s =
+      (await prisma.quizSettings.findUnique({
+        where: { id: "main" },
+        select: { config: true, activeExamId: true },
+      })) ?? (await settings());
+    return { config: s.config, examId: s.activeExamId };
+  },
+  ["quiz-public-config-v2"],
+  { revalidate: 60, tags: ["quiz-config"] },
+);
 export async function GET(req: NextRequest) {
   try {
-    const s = await settings();
     const admin = await isAdmin(req);
+    if (!admin)
+      return NextResponse.json(
+        { success: true, ...(await publicConfig()) },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    const s = await settings();
     return NextResponse.json(
       {
         success: true,
@@ -39,6 +57,8 @@ export async function PUT(req: NextRequest) {
         questions: JSON.parse(JSON.stringify(questions)),
       },
     });
+    revalidateTag("quiz-config", { expire: 0 });
+    revalidateTag("quiz-leaderboard", { expire: 0 });
     return NextResponse.json({
       success: true,
       config: s.config,

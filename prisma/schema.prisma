@@ -63,8 +63,11 @@ model Attempt {
   deadline DateTime
   submittedAt DateTime?
   result Json?
+  summary Json?
+  bankId String?
   version Int @default(0)
   @@index([examId, candidateId, submittedAt])
+  @@index([submittedAt, id])
 }
 model AdminAccount {
   id String @id @default("main")
@@ -75,4 +78,9 @@ model AdminAccount {
 model AdminSession {
   token String @id
   expiresAt DateTime
+}
+
+model QuestionBank {
+  id String @id
+  questions Json
 }

@@ -29,30 +29,36 @@ export default function DashboardPage() {
     "COLLECTIVE",
   );
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [stats, setStats] = useState({
+    totalParticipants: 0,
+    averageScore: 0,
+    passedCount: 0,
+  });
   const [totalAttempts, setTotalAttempts] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [dbConnected, setDbConnected] = useState<boolean | null>(null); // null = chưa biết
 
-  const loadData = useCallback(async () => {
+  const loadData = useCallback(async (requestedPage = 1) => {
     setIsLoading(true);
 
     try {
       // Ưu tiên lấy dữ liệu từ Cloud Database
-      const data = await api("/api/results");
+      const data = await api("/api/results?page=" + requestedPage);
       const cfg = data.config;
       setConfig(cfg);
       setTotalAttempts(data.totalAttempts);
+      setPage(data.page);
+      setHasMore(data.hasMore);
+      setStats(data);
       setError("");
       if (data.success && Array.isArray(data.results)) {
         setResults(data.results as ExamResult[]);
-        const rk = calculateCollectiveRanks(
-          data.results as ExamResult[],
-          cfg.units,
-        );
-        setRanks(rk);
+        setRanks(data.ranks);
         setDbConnected(true);
-        setLastUpdated(new Date());
+        setLastUpdated(new Date(data.asOf));
       } else {
         throw new Error("Dữ liệu trả về không hợp lệ");
       }
@@ -67,9 +73,6 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadData();
-    // Tự động làm mới mỗi 30 giây để cập nhật kết quả mới nhất
-    const interval = setInterval(loadData, 30000);
-    return () => clearInterval(interval);
   }, [loadData]);
 
   const handleExport = () => {
@@ -78,21 +81,15 @@ export default function DashboardPage() {
   };
 
   // Tính số liệu tổng quan toàn cơ quan
-  const totalParticipants = results.length;
+  const totalParticipants = stats.totalParticipants;
   const totalTarget =
     config?.units.reduce((acc, u) => acc + u.targetCount, 0) || 1;
   const overallParticipationRate = Math.min(
     100,
     Math.round((totalParticipants / totalTarget) * 10000) / 100,
   );
-  const overallAvgScore =
-    totalParticipants > 0
-      ? Math.round(
-          (results.reduce((acc, r) => acc + r.score, 0) / totalParticipants) *
-            100,
-        ) / 100
-      : 0;
-  const passedCount = results.filter((r) => r.isPassed).length;
+  const overallAvgScore = Math.round(stats.averageScore * 100) / 100;
+  const passedCount = stats.passedCount;
   const overallPassRate =
     totalParticipants > 0
       ? Math.round((passedCount / totalParticipants) * 10000) / 100
@@ -152,14 +149,14 @@ export default function DashboardPage() {
             {lastUpdated && (
               <p className="text-blue-200 text-xs">
                 Cập nhật lần cuối: {lastUpdated.toLocaleTimeString("vi-VN")} (Tự
-                động làm mới mỗi 30 giây)
+                tải khi bấm Làm mới; kết quả có thể trễ vài phút do cache)
               </p>
             )}
           </div>
 
           <div className="flex items-center gap-3">
             <button
-              onClick={loadData}
+              onClick={() => void loadData()}
               disabled={isLoading}
               className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-sm transition-all flex items-center gap-2 disabled:opacity-50"
             >
@@ -398,10 +395,27 @@ export default function DashboardPage() {
               Danh sách kết quả cá nhân (Sắp xếp theo Điểm số & Thời gian)
             </h3>
             <span className="text-xs text-slate-500">
-              Tổng cộng {sortedIndividuals.length} thí sinh
+              Tổng cộng {totalParticipants} thí sinh • Trang {page}
             </span>
           </div>
 
+          <div className="p-3 flex gap-4">
+            <button
+              disabled={isLoading || page === 1}
+              onClick={() => void loadData(page - 1)}
+            >
+              Trang trước
+            </button>
+            <button
+              disabled={isLoading || !hasMore}
+              onClick={() => void loadData(page + 1)}
+            >
+              Trang sau
+            </button>
+            <span className="text-xs">
+              Excel xuất cá nhân trang đang xem và xếp hạng toàn bộ tập thể.
+            </span>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-white border-b border-slate-200 text-slate-500 text-xs uppercase font-semibold">
@@ -431,7 +445,7 @@ export default function DashboardPage() {
                       className="hover:bg-slate-50/70 transition-colors"
                     >
                       <td className="py-3.5 px-4 text-center font-bold text-slate-500">
-                        {idx + 1}
+                        {(page - 1) * 100 + idx + 1}
                       </td>
                       <td className="py-3.5 px-4 font-semibold text-slate-900">
                         {res.userInfo.fullName}

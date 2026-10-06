@@ -22,6 +22,10 @@ export function verifyPassword(password: string, stored: string) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 export async function settings() {
+  const existing = await prisma.quizSettings.findUnique({
+    where: { id: "main" },
+  });
+  if (existing) return existing;
   return prisma.quizSettings.upsert({
     where: { id: "main" },
     update: {},

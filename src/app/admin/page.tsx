@@ -28,13 +28,23 @@ export default function AdminPage() {
 
   const [history, setHistory] = useState<any[]>([]);
   const [historyError, setHistoryError] = useState("");
-  const loadHistory = async () => {
+  const [historyCursor, setHistoryCursor] = useState<string[]>([""]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [historyBusy, setHistoryBusy] = useState(false);
+  const loadHistory = async (cursor = "", pages = [""]) => {
+    setHistoryBusy(true);
     try {
-      const data = await api("/api/results?history=1");
+      const data = await api(
+        "/api/results?history=1&cursor=" + encodeURIComponent(cursor),
+      );
       setHistory(data.history);
+      setHistoryCursor(pages);
+      setNextCursor(data.nextCursor);
       setHistoryError("");
     } catch (e) {
       setHistoryError((e as Error).message);
+    } finally {
+      setHistoryBusy(false);
     }
   };
 
@@ -319,9 +329,29 @@ export default function AdminPage() {
           </div>
         </div>
         <p className="text-xs text-slate-500">
-          Hiển thị tối đa 500 lượt nộp gần nhất. Toàn bộ lịch sử được giữ trong
-          database.
+          Mỗi trang 50 lượt nộp. Xuất Excel chỉ xuất trang đang xem.
         </p>
+        <div className="flex gap-4">
+          <button
+            disabled={historyBusy || historyCursor.length === 1}
+            onClick={() => {
+              const pages = historyCursor.slice(0, -1);
+              void loadHistory(pages[pages.length - 1], pages);
+            }}
+          >
+            Trang trước
+          </button>
+          <span>Trang {historyCursor.length}</span>
+          <button
+            disabled={historyBusy || !nextCursor}
+            onClick={() => {
+              if (nextCursor)
+                void loadHistory(nextCursor, [...historyCursor, nextCursor]);
+            }}
+          >
+            Trang sau
+          </button>
+        </div>
         {historyError && <p className="text-red-700">{historyError}</p>}
         <div className="overflow-x-auto max-h-80">
           <table className="w-full text-sm text-left">

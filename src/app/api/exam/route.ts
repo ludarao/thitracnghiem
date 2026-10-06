@@ -7,12 +7,13 @@ import {
   checkOrigin,
   failure,
 } from "../../../lib/server";
+import { normalizePhone, candidateCode } from "../../../lib/quiz-rules";
+import { getAttempt, submitAttempt } from "../../../lib/attempt-service";
 import {
-  normalizePhone,
-  candidateCode,
-  prepareQuestions,
-} from "../../../lib/quiz-rules";
-import { updateAttempt } from "../../../lib/attempt-service";
+  saveBank,
+  questionRefs,
+  hydrateQuestions,
+} from "../../../lib/question-bank";
 import type {
   ExamConfig,
   Question,
@@ -68,16 +69,19 @@ export async function POST(req: NextRequest) {
       phone,
       candidateCode: candidate.code,
     };
+    const bankId = await saveBank(s.questions as unknown as Question[]);
+    const { units, ...attemptConfig } = cfg;
     const attempt = await prisma.attempt.create({
       data: {
         token: digest(raw),
         candidateId: candidate.id,
         examId: s.activeExamId,
         info: JSON.parse(JSON.stringify(snapshot)),
-        config: JSON.parse(JSON.stringify(cfg)),
+        config: JSON.parse(JSON.stringify(attemptConfig)),
+        bankId,
         questions: JSON.parse(
           JSON.stringify(
-            prepareQuestions(s.questions as unknown as Question[], cfg),
+            questionRefs(s.questions as unknown as Question[], cfg),
           ),
         ),
         answers: {},
@@ -86,12 +90,25 @@ export async function POST(req: NextRequest) {
         deadline: new Date(now.getTime() + cfg.totalTimeMinutes * 60000),
       },
     });
-    return NextResponse.json({
-      success: true,
-      token: raw,
-      id: attempt.id,
-      candidateCode: candidate.code,
-    });
+    // Return the complete public session in the start response: no follow-up GET.
+    const prepared = await hydrateQuestions(attempt);
+    return NextResponse.json(
+      {
+        success: true,
+        token: raw,
+        id: attempt.id,
+        candidateCode: candidate.code,
+        userInfo: snapshot,
+        config: { ...attemptConfig, units: cfg.units },
+        questions: prepared.map((q) => ({ ...q, correct: undefined })),
+        answers: {},
+        currentIndex: 0,
+        serverTime: now.getTime(),
+        deadline: attempt.deadline.toISOString(),
+        result: null,
+      },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (e) {
     return failure(e);
   }
@@ -112,10 +129,14 @@ async function processAttempt(req: NextRequest, mutate: boolean) {
         { status: 401 },
       );
     const body = mutate ? await req.json() : {};
-    const { state, serverTime } = await updateAttempt(
-      { token: digest(raw) },
-      body,
-    );
+    if (mutate && body.action !== "submit")
+      return NextResponse.json(
+        { error: "Chỉ gửi bài khi nộp; tiến độ được lưu trên máy." },
+        { status: 400 },
+      );
+    const { state, serverTime } = mutate
+      ? await submitAttempt(digest(raw), body.answers)
+      : await getAttempt(digest(raw));
     const {
       id,
       info: userInfo,
@@ -132,7 +153,7 @@ async function processAttempt(req: NextRequest, mutate: boolean) {
         success: true,
         id,
         userInfo,
-        config,
+        config: { ...config, units: config.units || [] },
         answers,
         currentIndex,
         serverTime,

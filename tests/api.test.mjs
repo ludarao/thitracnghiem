@@ -54,6 +54,7 @@ function reset() {
 }
 const db = {
   quizSettings: {
+    findUnique: async () => config,
     upsert: async () => config,
     update: async ({ data }) => (config = { ...config, ...data }),
   },
@@ -89,20 +90,34 @@ const db = {
       Object.assign(a, data, { version: a.version + 1 });
       return a;
     },
-    findMany: async ({ where, take }) =>
+    findMany: async ({ where, take, select }) =>
       [...attempts.values()]
         .filter(
           (a) =>
+            (!where.id || where.id.in.includes(a.id)) &&
             (!where.examId || a.examId === where.examId) &&
-            (where.submittedAt === null
-              ? a.submittedAt === null
-              : a.submittedAt !== null),
+            (!where.OR ||
+              where.OR.some((c) =>
+                c.submittedAt?.lt
+                  ? a.submittedAt < c.submittedAt.lt
+                  : a.submittedAt?.getTime() === c.submittedAt?.getTime() &&
+                    a.id < c.id.lt,
+              )) &&
+            (!where.submittedAt ||
+              (where.submittedAt === null
+                ? a.submittedAt === null
+                : a.submittedAt !== null)),
         )
         .sort(
           (a, b) =>
             (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0),
         )
-        .slice(0, take),
+        .slice(0, take)
+        .map((a) =>
+          select
+            ? Object.fromEntries(Object.keys(select).map((k) => [k, a[k]]))
+            : a,
+        ),
   },
   adminAccount: {
     findUnique: async () => account,
@@ -140,6 +155,30 @@ require.cache[prismaPath] = {
   filename: prismaPath,
   loaded: true,
   exports: { prisma: db },
+};
+require.cache[require.resolve("next/cache")] = {
+  exports: {
+    unstable_cache: (fn) => fn,
+    revalidateTag: () => {},
+    revalidatePath: () => {},
+  },
+};
+db.questionBank = {
+  upsert: async ({ create }) => create,
+  findUnique: async () => null,
+};
+db.$queryRaw = async (strings, ...values) => {
+  const rows = [...attempts.values()]
+    .filter((a) => a.examId === values[0] && a.submittedAt)
+    .sort((a, b) => b.submittedAt - a.submittedAt || b.id.localeCompare(a.id));
+  const seen = new Set();
+  return rows
+    .filter((a) => {
+      if (seen.has(a.candidateId)) return false;
+      seen.add(a.candidateId);
+      return true;
+    })
+    .map((a) => ({ summary: a.summary, total: BigInt(rows.length) }));
 };
 const exam = require("../src/app/api/exam/route.ts");
 const admin = require("../src/app/api/admin/route.ts");
@@ -214,25 +253,33 @@ test("API lượt thi: không lộ đáp án đúng, chấm server và nộp tr�
   );
   let data = await response.json();
   assert.ok(data.questions.every((q) => !("correct" in q)));
-  await action(token, { action: "answer", questionId: 1, option: "A" });
-  response = await action(token, { action: "submit", score: 10 });
+
+  response = await action(token, {
+    action: "submit",
+    answers: { 1: "A" },
+    score: 10,
+  });
   data = await response.json();
   assert.equal(data.result.score, 5);
   const submitted = data.result.submittedAt;
-  response = await action(token, { action: "submit" });
+  response = await action(token, { action: "submit", answers: {} });
   data = await response.json();
   assert.equal(data.result.submittedAt, submitted);
   assert.equal(attempts.size, 1);
+  assert.equal([...attempts.values()][0].version, 1);
+  assert.ok(
+    [...attempts.values()][0].questions.every(
+      (q) => !q.question && q.order.length === 4,
+    ),
+  );
 });
 test("API bảng xếp hạng: lấy điểm lượt cuối thấp hơn, ẩn điện thoại/mã trên bảng công khai", async () => {
   reset();
   let first = await start();
-  await action(first.token, { action: "answer", questionId: 1, option: "A" });
-  await action(first.token, { action: "answer", questionId: 2, option: "B" });
-  await action(first.token, { action: "submit" });
+  await action(first.token, { action: "submit", answers: { 1: "A", 2: "B" } });
   await new Promise((r) => setTimeout(r, 2));
   const second = await start();
-  await action(second.token, { action: "submit" });
+  await action(second.token, { action: "submit", answers: {} });
   const data = await (await results.GET(req("/api/results"))).json();
   assert.equal(data.results.length, 1);
   assert.equal(data.results[0].score, 0);
@@ -316,7 +363,7 @@ test("API cấu hình: admin lưu dữ liệu chung, nhập câu sai không làm
 test("API kỳ mới: giữ lịch sử, bảng kỳ mới rỗng, chỉ admin xem được điện thoại trong lịch sử", async () => {
   reset();
   const { token } = await start();
-  await action(token, { action: "submit" });
+  await action(token, { action: "submit", answers: {} });
   const headers = await login();
   await results.DELETE(req("/api/results", "DELETE", undefined, headers));
   assert.equal(attempts.size, 1);
@@ -328,15 +375,20 @@ test("API kỳ mới: giữ lịch sử, bảng kỳ mới rỗng, chỉ admin x
   assert.equal(history.history.length, 1);
   assert.equal(history.history[0].userInfo.phone, userInfo.phone);
 });
-test("API hết giờ: dashboard chốt lượt bỏ dở, lấy hạn giờ làm thời điểm nộp", async () => {
+test("API offline: nhận bài sau hạn, giữ hạn giờ và không tự chấm lượt chưa gửi", async () => {
   reset();
-  const { id } = await start();
+  const { id, token } = await start();
   const a = attempts.get(id);
   a.deadline = new Date(Date.now() - 1000);
-  const deadline = a.deadline.toISOString();
-  const data = await (await results.GET(req("/api/results"))).json();
-  assert.equal(data.results.length, 1);
-  assert.equal(data.results[0].submittedAt, deadline);
+  assert.equal(
+    (await (await results.GET(req("/api/results"))).json()).results.length,
+    0,
+  );
+  const data = await (
+    await action(token, { action: "submit", answers: { 1: "A" } })
+  ).json();
+  assert.equal(data.result.submittedAt, a.deadline.toISOString());
+  assert.equal(data.result.score, 5);
 });
 test("API nguồn yêu cầu: chặn thao tác từ origin khác và token giả", async () => {
   reset();
@@ -363,26 +415,122 @@ test("API nguồn yêu cầu: chặn thao tác từ origin khác và token giả
   );
 });
 
-test("API chỉ hạn tổng: cấu hình cũ không ẩn đề hoặc khóa câu", async () => {
+test("API bắt đầu trả đầy đủ đề; không nhận request chọn từng đáp án", async () => {
   reset();
-  config.config.timePerQuestionSeconds = 10;
-  const { id, token } = await start();
-  attempts.get(id).questionStartedAt = new Date(Date.now() - 11000);
-  const data = await (
-    await action(token, { action: "answer", questionId: 1, option: "A" })
-  ).json();
-  assert.equal(data.answers[1], "A");
-  assert.equal(data.questions[1].question, "Q2");
+  const data = await start();
+  assert.equal(data.questions.length, 2);
   assert.equal(data.result, null);
-  assert.ok(!("questionDeadline" in data));
+  assert.ok(data.questions.every((q) => !("correct" in q)));
+  assert.equal(
+    (await action(data.token, { action: "answer", questionId: 1, option: "A" }))
+      .status,
+    400,
+  );
 });
 test("API cấm xem lại: không trả đáp án đúng hoặc chi tiết đúng/sai sau khi nộp", async () => {
   reset();
   config.config.allowReview = false;
   const { token } = await start();
-  await action(token, { action: "answer", questionId: 1, option: "A" });
-  const data = await (await action(token, { action: "submit" })).json();
+
+  const data = await (
+    await action(token, { action: "submit", answers: { 1: "A" } })
+  ).json();
   assert.equal(data.result.score, 5);
   assert.deepEqual(data.result.answers, []);
   assert.ok(data.questions.every((q) => !("correct" in q)));
+});
+
+test("API lịch sử: phân trang 50 lượt, không đọc đề hoặc đáp án, trang sau không trùng", async () => {
+  reset();
+  const { token, id } = await start();
+  await action(token, { action: "submit", answers: { 1: "A" } });
+  const template = attempts.get(id);
+  for (let i = 0; i < 55; i++) {
+    const row = {
+      ...template,
+      id: "extra-" + String(i).padStart(3, "0"),
+      submittedAt: new Date(Date.now() + i + 1),
+      summary: { ...template.summary, id: "extra-" + i },
+    };
+    attempts.set(row.id, row);
+  }
+  const headers = await login();
+  const first = await (
+    await results.GET(req("/api/results?history=1", "GET", undefined, headers))
+  ).json();
+  assert.equal(first.history.length, 50);
+  assert.ok(first.nextCursor);
+  assert.ok(first.history.every((r) => !r.questions && r.answers.length === 0));
+  const second = await (
+    await results.GET(
+      req(
+        "/api/results?history=1&cursor=" + first.nextCursor,
+        "GET",
+        undefined,
+        headers,
+      ),
+    )
+  ).json();
+  assert.equal(second.history.length, 6);
+  assert.equal(second.nextCursor, null);
+  assert.ok(
+    second.history.every((r) => !first.history.some((f) => f.id === r.id)),
+  );
+});
+
+test("API ngân hàng đề: lượt thi giữ phiên bản cũ sau khi admin sửa ngân hàng", async () => {
+  reset();
+  const old = await start();
+  config.questions = config.questions.map((q) => ({
+    ...q,
+    correct: "D",
+    question: "Changed",
+  }));
+  const current = await start();
+  assert.equal(current.questions[0].question, "Changed");
+  const result = await (
+    await action(old.token, { action: "submit", answers: { 1: "A" } })
+  ).json();
+  assert.equal(result.result.score, 5);
+});
+
+test("API từ chối batch sai không ghi kết quả", async () => {
+  reset();
+  const { id, token } = await start();
+  for (const answers of [{ 999: "A" }, { 1: "Z" }, []]) {
+    const response = await expectedError(() =>
+      action(token, { action: "submit", answers }),
+    );
+    assert.equal(response.status, 400);
+  }
+  assert.equal(attempts.get(id).submittedAt, null);
+  assert.equal(attempts.get(id).version, 0);
+});
+
+test("API 5001 người: response 100 người/trang, thống kê và tập thể tính toàn bộ", async () => {
+  reset();
+  const { token, id } = await start();
+  await action(token, { action: "submit", answers: { 1: "A" } });
+  const template = attempts.get(id);
+  for (let i = 0; i < 5000; i++) {
+    const row = {
+      ...template,
+      id: "bulk-" + i,
+      candidateId: "bulk-candidate-" + i,
+      summary: { ...template.summary, id: "bulk-" + i },
+    };
+    attempts.set(row.id, row);
+  }
+  const first = await (await results.GET(req("/api/results"))).json();
+  assert.equal(first.results.length, 100);
+  assert.equal(first.totalParticipants, 5001);
+  assert.equal(first.totalAttempts, 5001);
+  assert.equal(first.averageScore, 5);
+  assert.equal(
+    first.ranks.find((r) => r.unit === userInfo.unit).participantCount,
+    5001,
+  );
+  const last = await (await results.GET(req("/api/results?page=51"))).json();
+  assert.equal(last.results.length, 1);
+  assert.equal(last.hasMore, false);
 });

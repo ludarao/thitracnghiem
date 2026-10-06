@@ -74,21 +74,51 @@ export default function ExamPage() {
       setExamState("FINISHED");
     } else setExamState("IN_PROGRESS");
   };
-  const sync = async (body?: object) => {
-    if (pending.current) return;
+  const frozen = useRef<Record<number, string> | null>(null);
+  const saveLocal = (data: Session) => {
+    localStorage.setItem(
+      "quiz_local_attempt_v2",
+      JSON.stringify({
+        token: tokenRef.current,
+        session: data,
+        offset: clockOffset.current,
+        frozen: frozen.current,
+      }),
+    );
+    sessionRef.current = data;
+  };
+  const submit = async () => {
+    if (pending.current || !sessionRef.current || sessionRef.current.result)
+      return;
+    try {
+      if (!frozen.current) {
+        frozen.current = { ...sessionRef.current.answers };
+        saveLocal(sessionRef.current);
+      }
+    } catch {
+      setError("Không lưu được bài trên máy. Giữ trang này mở và thử nộp lại.");
+      return;
+    }
     pending.current = true;
     setBusy(true);
     try {
       const data = await api<Session>("/api/exam", {
-        method: body ? "PATCH" : "GET",
+        method: "PATCH",
+        signal: AbortSignal.timeout(20000),
         headers: { Authorization: "Bearer " + tokenRef.current },
-        ...(body ? { body: JSON.stringify(body) } : {}),
+        body: JSON.stringify({ action: "submit", answers: frozen.current }),
       });
       apply(data);
+      try {
+        saveLocal(data);
+      } catch {
+        /* Server has confirmed the result. */
+      }
       setError("");
     } catch (e) {
       setError(
-        (e as Error).message + " Bài chưa được xác nhận lưu; hãy thử lại.",
+        (e as Error).message +
+          " Bài đã khóa và được giữ trên máy. Có mạng hãy bấm Thử nộp lại.",
       );
     } finally {
       pending.current = false;
@@ -98,39 +128,60 @@ export default function ExamPage() {
   useEffect(() => {
     const load = async () => {
       try {
+        const local = localStorage.getItem("quiz_local_attempt_v2");
+        if (local) {
+          const saved = JSON.parse(local);
+          tokenRef.current = saved.token;
+          frozen.current = saved.frozen;
+          apply({ ...saved.session, serverTime: Date.now() + saved.offset });
+          setCurrentIndex(saved.session.currentIndex || 0);
+          if (saved.frozen && !saved.session.result) void submit();
+          return;
+        }
+        const old = localStorage.getItem("quiz_active_attempt");
+        if (old) {
+          tokenRef.current = old;
+          const data = await api<Session>("/api/exam", {
+            headers: { Authorization: "Bearer " + old },
+          });
+          apply(data);
+          saveLocal(data);
+          return;
+        }
         const data = await api("/api/config");
         setConfig(data.config);
         setUserInfo((prev) => ({
           ...prev,
           unit: data.config.units[0]?.name || "",
         }));
-        const saved = localStorage.getItem("quiz_active_attempt");
-        if (saved) {
-          tokenRef.current = saved;
-          await sync();
-        }
       } catch (e) {
         setError((e as Error).message);
       }
     };
     void load();
+    const online = () => {
+      if (frozen.current) void submit();
+    };
+    window.addEventListener("online", online);
+    return () => window.removeEventListener("online", online);
   }, []);
   useEffect(() => {
     if (examState !== "IN_PROGRESS") return;
-    const timer = setInterval(() => {
+    const tick = () => {
       const data = sessionRef.current;
       if (!data) return;
-      const now = Date.now() + clockOffset.current;
-      setTimeRemainingTotal(
-        Math.max(0, Math.ceil((Date.parse(data.deadline) - now) / 1000)),
+      const remaining = Math.max(
+        0,
+        Math.ceil(
+          (Date.parse(data.deadline) - Date.now() - clockOffset.current) / 1000,
+        ),
       );
-      if (now >= Date.parse(data.deadline)) void sync({ action: "sync" });
-    }, 1000);
-    const poll = setInterval(() => void sync(), 10000);
-    return () => {
-      clearInterval(timer);
-      clearInterval(poll);
+      setTimeRemainingTotal(remaining);
+      if (remaining === 0 && !frozen.current) void submit();
     };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
   }, [examState]);
   const handleStartExam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,27 +189,57 @@ export default function ExamPage() {
     setBusy(true);
     setError("");
     try {
+      localStorage.setItem("quiz_storage_check", "1");
+      localStorage.removeItem("quiz_storage_check");
       const data = await api("/api/exam", {
         method: "POST",
         body: JSON.stringify({ userInfo }),
       });
       tokenRef.current = data.token;
-      localStorage.setItem("quiz_active_attempt", data.token);
+      frozen.current = null;
+      apply(data);
+      saveLocal(data);
       setCurrentIndex(0);
-      setBusy(false);
-      await sync();
+      localStorage.removeItem("quiz_active_attempt");
     } catch (e) {
       setError((e as Error).message);
+    } finally {
       setBusy(false);
     }
   };
-  const handleSelectOption = (option: string) =>
-    void sync({
-      action: "answer",
-      questionId: examQuestions[currentIndex].id,
-      option,
-    });
-  const handleSubmitExam = () => void sync({ action: "submit" });
+  const handleSelectOption = (option: string) => {
+    const data = sessionRef.current;
+    if (
+      !data ||
+      frozen.current ||
+      Date.now() + clockOffset.current >= Date.parse(data.deadline)
+    )
+      return;
+    const updated = {
+      ...data,
+      answers: { ...data.answers, [examQuestions[currentIndex].id]: option },
+      currentIndex,
+    };
+    try {
+      saveLocal(updated);
+      setSelectedAnswers(updated.answers);
+      setError("");
+    } catch {
+      setError(
+        "Không lưu được đáp án trên máy. Hãy giải phóng dung lượng trình duyệt.",
+      );
+    }
+  };
+  const navigate = (index: number) => {
+    if (!sessionRef.current) return;
+    try {
+      saveLocal({ ...sessionRef.current, currentIndex: index });
+      setCurrentIndex(index);
+    } catch {
+      setError("Không lưu được tiến độ trên máy.");
+    }
+  };
+  const handleSubmitExam = () => void submit();
 
   // Format time mm:ss
   const formatTime = (seconds: number) => {
@@ -394,14 +475,18 @@ export default function ExamPage() {
         {error && (
           <p role="alert" className="p-3 bg-red-50 text-red-700">
             {error}
-            <button onClick={() => void sync()} className="ml-3 underline">
-              Thử lại
+            <button onClick={handleSubmitExam} className="ml-3 underline">
+              Thử nộp lại
             </button>
           </p>
         )}
         <p className="text-sm text-slate-600">
           Mã thí sinh: <strong>{userInfo.candidateCode}</strong>
-          {busy && " • Đang lưu..."}
+          {busy
+            ? " • Đang nộp..."
+            : frozen.current
+              ? " • Đã khóa, chờ xác nhận nộp"
+              : " • Đáp án được lưu trên máy"}
         </p>
         {/* Thanh trạng thái Header bài thi */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sticky top-18 z-40">
@@ -483,7 +568,9 @@ export default function ExamPage() {
               return (
                 <button
                   key={key}
-                  disabled={busy || timeRemainingTotal === 0}
+                  disabled={
+                    busy || !!frozen.current || timeRemainingTotal === 0
+                  }
                   onClick={() => handleSelectOption(key)}
                   className={`w-full text-left p-4 rounded-xl border transition-all flex items-start gap-3.5 ${
                     isSelected
@@ -511,7 +598,7 @@ export default function ExamPage() {
           {/* Điều hướng Next / Prev */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-slate-100">
             <button
-              onClick={() => setCurrentIndex((prev) => Math.max(0, prev - 1))}
+              onClick={() => navigate(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0 || busy}
               className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-sm font-medium hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
@@ -524,9 +611,7 @@ export default function ExamPage() {
             </span>
 
             <button
-              onClick={() =>
-                setCurrentIndex((prev) => Math.min(totalQ - 1, prev + 1))
-              }
+              onClick={() => navigate(Math.min(totalQ - 1, currentIndex + 1))}
               disabled={busy || currentIndex === totalQ - 1}
               className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
@@ -550,7 +635,7 @@ export default function ExamPage() {
                 <button
                   key={q.id}
                   disabled={busy}
-                  onClick={() => setCurrentIndex(idx)}
+                  onClick={() => navigate(idx)}
                   className={`h-9 rounded-lg text-xs font-bold transition-all ${
                     isCurrent
                       ? "bg-blue-600 text-white ring-2 ring-blue-600 ring-offset-2"
@@ -640,6 +725,8 @@ export default function ExamPage() {
             <button
               onClick={() => {
                 localStorage.removeItem("quiz_active_attempt");
+                localStorage.removeItem("quiz_local_attempt_v2");
+                frozen.current = null;
                 tokenRef.current = "";
                 sessionRef.current = null;
                 setExamState("REGISTER");
