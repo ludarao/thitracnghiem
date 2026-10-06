@@ -1,0 +1,37 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+model ExamResult {
+  id                  String   @id @default(cuid())
+  // Thông tin thí sinh
+  fullName            String
+  rank                String   // Cấp bậc
+  position            String   // Chức vụ
+  unit                String   // Đơn vị
+  // Kết quả bài thi
+  score               Float    // Điểm /10
+  correctCount        Int
+  totalQuestions      Int
+  percentage          Float    // % điểm
+  isPassed            Boolean
+  totalDurationSeconds Int
+  // Thời gian
+  startTime           DateTime
+  endTime             DateTime
+  submittedAt         DateTime @default(now())
+  // Chi tiết bài làm (JSON)
+  answersJson         String   @db.Text
+
+  @@index([unit])
+  @@index([submittedAt])
+}

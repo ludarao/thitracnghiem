@@ -213,9 +213,20 @@ export default function ExamPage() {
       submittedAt: endIso,
     };
 
+    // Luôn lưu local trước để thí sinh có thể xem kết quả ngay, kể cả khi mạng chậm
     saveExamResult(examResultData);
     setResult(examResultData);
     setExamState('FINISHED');
+
+    // Đồng thời POST lên Cloud Database (Vercel Postgres) để gom kết quả về Dashboard chung
+    // Dùng fire-and-forget: không block UI, thất bại sẽ log ra console
+    fetch('/api/results', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(examResultData),
+    }).catch((err) => {
+      console.warn('Không thể đồng bộ kết quả lên Cloud DB (Bài thi đã lưu trên máy):', err);
+    });
   };
 
   // Format time mm:ss

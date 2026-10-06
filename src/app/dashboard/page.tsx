@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   getStorageConfig, 
   getStorageResults, 
@@ -16,10 +16,11 @@ import {
   CheckCircle, 
   Download, 
   Search, 
-  Filter,
   Medal,
-  Clock,
-  Sparkles
+  Sparkles,
+  RefreshCw,
+  Wifi,
+  WifiOff,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -28,19 +29,48 @@ export default function DashboardPage() {
   const [ranks, setRanks] = useState<CollectiveRank[]>([]);
   const [searchUnit, setSearchUnit] = useState('');
   const [activeTab, setActiveTab] = useState<'COLLECTIVE' | 'INDIVIDUAL'>('COLLECTIVE');
+  const [isLoading, setIsLoading] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [dbConnected, setDbConnected] = useState<boolean | null>(null); // null = chưa biết
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    const cfg = getStorageConfig();
+    setConfig(cfg);
+
+    try {
+      // Ưu tiên lấy dữ liệu từ Cloud Database
+      const response = await fetch('/api/results', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      if (data.success && Array.isArray(data.results)) {
+        setResults(data.results as ExamResult[]);
+        const rk = calculateCollectiveRanks(data.results as ExamResult[], cfg.units);
+        setRanks(rk);
+        setDbConnected(true);
+        setLastUpdated(new Date());
+      } else {
+        throw new Error('Dữ liệu trả về không hợp lệ');
+      }
+    } catch (err) {
+      console.warn('Không kết nối được Cloud DB, dùng dữ liệu cục bộ:', err);
+      setDbConnected(false);
+      // Fallback: dùng LocalStorage
+      const localRes = getStorageResults();
+      setResults(localRes);
+      const rk = calculateCollectiveRanks(localRes, cfg.units);
+      setRanks(rk);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     loadData();
-  }, []);
-
-  const loadData = () => {
-    const cfg = getStorageConfig();
-    const res = getStorageResults();
-    setConfig(cfg);
-    setResults(res);
-    const rk = calculateCollectiveRanks(res, cfg.units);
-    setRanks(rk);
-  };
+    // Tự động làm mới mỗi 30 giây để cập nhật kết quả mới nhất
+    const interval = setInterval(loadData, 30000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   const handleExport = () => {
     if (!config) return;
@@ -76,19 +106,48 @@ export default function DashboardPage() {
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-sm">
-              <Sparkles className="w-3.5 h-3.5" />
-              Bảng Tổng Hợp Kết Quả & Thi Đua
-            </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-sm">
+                <Sparkles className="w-3.5 h-3.5" />
+                Bảng Tổng Hợp Kết Quả &amp; Thi Đua
+              </span>
+              {/* Trạng thái kết nối Cloud DB */}
+              {dbConnected === true && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                  <Wifi className="w-3 h-3" />
+                  Kết nối Cloud DB
+                </span>
+              )}
+              {dbConnected === false && (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-400/20 text-amber-200 border border-amber-400/30">
+                  <WifiOff className="w-3 h-3" />
+                  Dữ liệu cục bộ
+                </span>
+              )}
+            </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-              Bảng Xếp Hạng Tập Thể & Cá Nhân
+              Bảng Xếp Hạng Tập Thể &amp; Cá Nhân
             </h1>
             <p className="text-blue-100 text-sm max-w-2xl">
               Đánh giá thực chất dựa trên 3 tiêu chí cốt lõi: Tỷ lệ quân số tham gia, Điểm trung bình và Tỷ lệ đạt xuất sắc (&ge;80%).
             </p>
+            {lastUpdated && (
+              <p className="text-blue-200 text-xs">
+                Cập nhật lần cuối: {lastUpdated.toLocaleTimeString('vi-VN')} (Tự động làm mới mỗi 30 giây)
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={loadData}
+              disabled={isLoading}
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-semibold text-sm transition-all flex items-center gap-2 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <span>{isLoading ? 'Đang tải...' : 'Làm mới'}</span>
+            </button>
+
             <button
               onClick={handleExport}
               disabled={results.length === 0}

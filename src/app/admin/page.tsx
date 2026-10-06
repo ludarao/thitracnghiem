@@ -165,14 +165,34 @@ export default function AdminPage() {
     }
   };
 
-  // Reset toàn bộ kết quả thi
-  const handleClearResults = () => {
-    const results = getStorageResults();
-    if (confirm(`Bạn có chắc chắn muốn xóa toàn bộ ${results.length} kết quả thi hiện tại để bắt đầu kỳ thi mới không?`)) {
-      clearAllResults();
-      alert('Đã làm sạch dữ liệu kết quả thi!');
+  // Reset toàn bộ kết quả thi (cả Cloud DB + LocalStorage)
+  const handleClearResults = async () => {
+    const localResults = getStorageResults();
+    if (!confirm(`Bạn có chắc chắn muốn xóa toàn bộ ${localResults.length} kết quả thi hiện tại để bắt đầu kỳ thi mới không?\n\nHành động này sẽ xóa cả dữ liệu trên Cloud Database!`)) return;
+
+    // 1. Xóa dữ liệu cục bộ
+    clearAllResults();
+
+    // 2. Xóa dữ liệu trên Cloud DB qua API
+    const secretKey = prompt('Nhập ADMIN_SECRET_KEY để xác nhận xóa dữ liệu Cloud Database:');
+    if (!secretKey) {
+      alert('Đã xóa dữ liệu cục bộ. Cloud DB không bị xóa do bạn không nhập key xác nhận.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/results?key=${encodeURIComponent(secretKey)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Đã xóa thành công!\n- Dữ liệu cục bộ: Đã xóa\n- Cloud Database: Đã xóa ${data.deleted} bản ghi`);
+      } else {
+        alert(`Dữ liệu cục bộ đã xóa, nhưng Cloud DB thất bại: ${data.error}\n(Kiểm tra lại ADMIN_SECRET_KEY trong Vercel Environment Variables)`);
+      }
+    } catch (err) {
+      alert('Dữ liệu cục bộ đã xóa. Không kết nối được Cloud DB để xóa.');
     }
   };
+
 
   // Chưa đăng nhập -> Hiện Form Đăng Nhập
   if (!isAuthenticated) {
