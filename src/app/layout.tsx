@@ -3,7 +3,7 @@ import "./globals.css";
 import Navbar from "../components/Navbar";
 
 export const metadata: Metadata = {
-  title: "Hội Thi Trắc Nghiệm - Nghị Quyết Đại Hội XIII Đoàn TNCS Hồ Chí Minh",
+  title: "Thi trắc nghiệm trực tuyến",
   description:
     "Hệ thống thi trắc nghiệm trực tuyến, tính điểm và xếp hạng tập thể thi đua",
 };
