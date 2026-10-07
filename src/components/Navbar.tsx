@@ -34,7 +34,7 @@ export default function Navbar() {
                   HỆ THỐNG THI
                 </span>
                 <span className="text-xs text-slate-600 font-medium">
-                  Trắc nghiệm online - Tú Mòe
+                  Trắc nghiệm online - Đội Điều lệnh, Quân sự, Võ thuật, Thể dục thể thao và Văn thể
                 </span>
               </div>
             </Link>
