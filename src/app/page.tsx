@@ -38,7 +38,7 @@ export default function ExamPage() {
   >("REGISTER");
   const [userInfo, setUserInfo] = useState<UserInfo>({
     fullName: "",
-    rank: "Đoàn viên",
+    rank: "",
     position: "Cán bộ",
     unit: "",
     phone: "",
