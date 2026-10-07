@@ -3,19 +3,75 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 15, 23, 42;
-  --background-start-rgb: 248, 250, 252;
-  --background-end-rgb: 241, 245, 249;
+  --foreground-rgb: 41, 37, 36;
+  --background-start-rgb: 255, 243, 185;
+  --background-end-rgb: 255, 252, 240;
 }
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background:
+    radial-gradient(ellipse at 15% 15%, #ffe990 0, transparent 60%),
+    linear-gradient(135deg, #fff0b0, #fffaf0 75%);
   min-height: 100vh;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  font-family: Arial, "Segoe UI", system-ui, sans-serif;
+}
+
+.registration-layout {
+  position: relative;
+  isolation: isolate;
+}
+.registration-layout::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  width: min(80vw, 900px);
+  aspect-ratio: 1;
+  left: -30%;
+  top: -80px;
+  border-radius: 50%;
+  opacity: 0.3;
+  background:
+    repeating-radial-gradient(
+      circle,
+      transparent 0 42px,
+      #e8bd37 43px 45px,
+      transparent 46px 56px
+    ),
+    repeating-conic-gradient(
+      from 0deg,
+      #efca54 0deg 2deg,
+      transparent 2deg 30deg
+    );
+  mask-image: radial-gradient(
+    circle,
+    transparent 0 12%,
+    #000 14% 65%,
+    transparent 70%
+  );
+}
+
+@layer base {
+  input[type="checkbox"] {
+    accent-color: #c51d18;
+  }
+  input:not([type="checkbox"]):not([type="file"]),
+  select,
+  textarea {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2;
+  }
+  a,
+  button {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

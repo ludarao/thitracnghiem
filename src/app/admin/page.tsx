@@ -256,7 +256,7 @@ export default function AdminPage() {
     return (
       <div className="max-w-md mx-auto py-12">
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-8">
-          <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 mx-auto flex items-center justify-center mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-brand-50 text-brand-600 mx-auto flex items-center justify-center mb-4">
             <Lock className="w-7 h-7" />
           </div>
           <h2 className="text-xl font-bold text-center text-slate-900 mb-1">
@@ -284,13 +284,13 @@ export default function AdminPage() {
                 placeholder="Nhập mật khẩu..."
                 value={inputPassword}
                 onChange={(e) => setInputPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
             </div>
 
             <button
               type="submit"
-              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm shadow-md transition-all"
+              className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md transition-all"
             >
               Đăng Nhập Quản Trị
             </button>
@@ -326,7 +326,7 @@ export default function AdminPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleSaveConfig}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm shadow-sm transition-all flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm shadow-sm transition-all flex items-center gap-1.5"
           >
             <Save className="w-4 h-4" />
             <span>Lưu Cấu Hình</span>
@@ -348,7 +348,7 @@ export default function AdminPage() {
           <div className="flex gap-3">
             <button
               onClick={() => void loadHistory()}
-              className="text-blue-700"
+              className="text-brand-700"
             >
               Làm mới
             </button>
@@ -356,7 +356,7 @@ export default function AdminPage() {
               onClick={() =>
                 exportResultsToExcel(history, [], "Lich_Su_Thi.xlsx")
               }
-              className="text-blue-700"
+              className="text-brand-700"
             >
               Xuất Excel
             </button>
@@ -422,7 +422,7 @@ export default function AdminPage() {
           {/* Cấu hình chung kỳ thi */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
             <h3 className="text-base font-bold text-slate-900 border-b pb-3 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-blue-600" />
+              <Layers className="w-5 h-5 text-brand-600" />
               Thiết Lập Kỳ Thi & Quy Chế
             </h3>
 
@@ -437,7 +437,7 @@ export default function AdminPage() {
                   onChange={(e) =>
                     setConfig({ ...config, title: e.target.value })
                   }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -451,7 +451,7 @@ export default function AdminPage() {
                   onChange={(e) =>
                     setConfig({ ...config, description: e.target.value })
                   }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </div>
@@ -472,7 +472,7 @@ export default function AdminPage() {
                       questionCount: Number(e.target.value),
                     })
                   }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 <p className="text-xs text-slate-400 mt-1">
                   Tổng ngân hàng hiện có {questions.length} câu
@@ -493,7 +493,7 @@ export default function AdminPage() {
                       totalTimeMinutes: Number(e.target.value),
                     })
                   }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 <p className="text-xs text-slate-400 mt-1">
                   Hết giờ hệ thống tự động thu nộp bài
@@ -515,7 +515,7 @@ export default function AdminPage() {
                       passingScorePercent: Number(e.target.value),
                     })
                   }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 <p className="text-xs text-slate-400 mt-1">
                   Mặc định: 80% (tương đương &ge;8.0 điểm)
@@ -532,7 +532,7 @@ export default function AdminPage() {
                   onChange={(e) =>
                     setConfig({ ...config, shuffleQuestions: e.target.checked })
                   }
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm font-medium text-slate-800">
                   Xáo trộn thứ tự các câu hỏi (Đảo câu ngẫu nhiên)
@@ -546,7 +546,7 @@ export default function AdminPage() {
                   onChange={(e) =>
                     setConfig({ ...config, shuffleOptions: e.target.checked })
                   }
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm font-medium text-slate-800">
                   Xáo trộn thứ tự các đáp án A, B, C, D (Chống nhìn bài nhau)
@@ -560,7 +560,7 @@ export default function AdminPage() {
                   onChange={(e) =>
                     setConfig({ ...config, allowReview: e.target.checked })
                   }
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm font-medium text-slate-800">
                   Cho phép xem lại đáp án đúng sau khi nộp bài
@@ -574,7 +574,7 @@ export default function AdminPage() {
                   onChange={(e) =>
                     setConfig({ ...config, isOpen: e.target.checked })
                   }
-                  className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500"
                 />
                 <span className="text-sm font-medium text-slate-800">
                   Trạng thái:{" "}
@@ -596,7 +596,7 @@ export default function AdminPage() {
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <ListOrdered className="w-5 h-5 text-blue-600" />
+                <ListOrdered className="w-5 h-5 text-brand-600" />
                 Danh Sách Đơn Vị
               </h3>
               <span className="text-xs text-slate-500">
@@ -604,7 +604,7 @@ export default function AdminPage() {
               </span>
             </div>
 
-            <div className="rounded-xl bg-blue-50 p-4 space-y-3">
+            <div className="rounded-xl bg-brand-50 p-4 space-y-3">
               <p className="text-sm text-slate-600">
                 Excel gồm cột <strong>Tên đơn vị</strong> và{" "}
                 <strong>Số lượng</strong> (có thể bỏ trống, lưu là 0). Nhập file
@@ -613,7 +613,7 @@ export default function AdminPage() {
               </p>
               <div className="flex flex-wrap gap-3 items-center">
                 <label
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-medium ${unitsImportBusy ? "opacity-50" : "cursor-pointer hover:bg-blue-700"}`}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium ${unitsImportBusy ? "opacity-50" : "cursor-pointer hover:bg-brand-700"}`}
                 >
                   <Upload className="w-4 h-4" /> Nhập danh sách Excel
                   <input
@@ -628,7 +628,7 @@ export default function AdminPage() {
                 <button
                   type="button"
                   onClick={downloadUnitTemplate}
-                  className="text-sm font-medium text-blue-700 hover:underline"
+                  className="text-sm font-medium text-brand-700 hover:underline"
                 >
                   Tải file mẫu
                 </button>
@@ -647,7 +647,7 @@ export default function AdminPage() {
                 placeholder="Tên đơn vị mới (Ví dụ: Chi đoàn Hải đội 1)"
                 value={newUnitName}
                 onChange={(e) => setNewUnitName(e.target.value)}
-                className="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               <input
                 type="number"
@@ -656,12 +656,12 @@ export default function AdminPage() {
                 placeholder="Số lượng"
                 value={newUnitTarget}
                 onChange={(e) => setNewUnitTarget(Number(e.target.value))}
-                className="w-full sm:w-36 px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full sm:w-36 px-3.5 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               />
               <button
                 type="button"
                 onClick={handleAddUnit}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-all flex items-center justify-center gap-1.5"
+                className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-medium transition-all flex items-center justify-center gap-1.5"
               >
                 <Plus className="w-4 h-4" />
                 <span>Thêm</span>
@@ -755,7 +755,7 @@ export default function AdminPage() {
 
             <div className="text-xs text-slate-500 border-t pt-3">
               Ngân hàng hiện tại:{" "}
-              <span className="font-bold text-blue-600">
+              <span className="font-bold text-brand-600">
                 {questions.length} câu hỏi
               </span>
             </div>
@@ -764,12 +764,12 @@ export default function AdminPage() {
           {/* Đổi Mật Khẩu Admin */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
             <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <Key className="w-5 h-5 text-blue-600" />
+              <Key className="w-5 h-5 text-brand-600" />
               Đổi Mật Khẩu Quản Trị
             </h3>
 
             {passwordMsg && (
-              <p className="text-xs p-2.5 rounded-lg bg-blue-50 text-blue-700 border border-blue-200">
+              <p className="text-xs p-2.5 rounded-lg bg-brand-50 text-brand-700 border border-brand-200">
                 {passwordMsg}
               </p>
             )}
@@ -784,7 +784,7 @@ export default function AdminPage() {
                   placeholder="Ít nhất 10 ký tự"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 
@@ -797,7 +797,7 @@ export default function AdminPage() {
                   placeholder="Nhập lại mật khẩu mới"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
 

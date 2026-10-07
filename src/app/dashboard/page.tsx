@@ -41,7 +41,7 @@ export default function DashboardPage() {
         <button
           disabled={loading}
           onClick={() => void load()}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 text-white disabled:opacity-50"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           {loading ? "Đang tải..." : "Làm mới"}
@@ -78,7 +78,7 @@ export default function DashboardPage() {
                 {data.units.map((row) => (
                   <tr key={row.unit} className="border-t border-slate-100">
                     <td className="p-4 font-medium">{row.unit}</td>
-                    <td className="p-4 text-right font-bold text-blue-700">
+                    <td className="p-4 text-right font-bold text-brand-700">
                       {row.participantCount}
                     </td>
                   </tr>

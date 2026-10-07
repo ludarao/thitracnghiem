@@ -260,7 +260,7 @@ export default function ExamPage() {
       );
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-600"></div>
       </div>
     );
   }
@@ -268,18 +268,48 @@ export default function ExamPage() {
   // Giao diện Đăng ký / Điền thông tin
   if (examState === "REGISTER") {
     return (
-      <div className="max-w-2xl mx-auto py-6 sm:py-10">
-        <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-800 p-6 sm:p-8 text-white text-center relative overflow-hidden">
+      <div className="registration-layout grid lg:grid-cols-[1fr_1.05fr] gap-8 lg:gap-14 items-start py-6 sm:py-10">
+        <section className="registration-intro lg:sticky lg:top-40 py-4 lg:py-16">
+          <span className="inline-flex items-center gap-2 text-brand-800 text-xs font-bold uppercase tracking-[0.18em] mb-5">
+            <span className="h-px w-8 bg-brand-700" aria-hidden="true" /> Cổng
+            thi trực tuyến
+          </span>
+          <h1 className="text-3xl sm:text-4xl xl:text-5xl font-bold text-brand-700 leading-[1.2] tracking-tight">
+            {config.title}
+          </h1>
+          <p className="mt-6 text-lg sm:text-xl leading-relaxed text-brand-800 max-w-xl">
+            {config.description}
+          </p>
+          <div className="mt-8 pt-6 border-t border-amber-400/60 flex gap-6 text-brand-900">
+            <div>
+              <p className="text-3xl font-bold">{config.questionCount}</p>
+              <p className="text-sm mt-1">Câu hỏi mỗi bài</p>
+            </div>
+            <div className="w-px bg-amber-400/60" aria-hidden="true" />
+            <div>
+              <p className="text-3xl font-bold">
+                {config.totalTimeMinutes}
+                <span className="text-base font-medium ml-2">phút</span>
+              </p>
+              <p className="text-sm mt-1">Thời gian làm bài</p>
+            </div>
+          </div>
+          <p className="mt-7 text-sm leading-relaxed text-stone-700">
+            Điền thông tin để bắt đầu dự thi. Bạn có thể thi lại; hệ thống ghi
+            nhận kết quả của lần nộp cuối.
+          </p>
+        </section>
+        <div className="bg-white rounded-2xl shadow-xl shadow-amber-900/10 border border-amber-200 overflow-hidden">
+          <div className="bg-gradient-to-r from-brand-700 to-brand-900 p-6 sm:p-8 text-white text-center relative overflow-hidden">
             <div className="relative z-10">
               <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-sm mb-3">
                 Cổng Thi Trực Tuyến
               </span>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight mb-2">
-                {config.title}
-              </h1>
-              <p className="text-blue-100 text-sm max-w-xl mx-auto">
-                {config.description}
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-2">
+                Đăng ký dự thi
+              </h2>
+              <p className="text-brand-100 text-sm max-w-xl mx-auto">
+                Hoàn tất thông tin để nhận đề thi của bạn.
               </p>
             </div>
             <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
@@ -327,7 +357,7 @@ export default function ExamPage() {
                 </p>
               )}
               <h3 className="text-base font-semibold text-slate-900 border-b pb-2 flex items-center gap-2">
-                <User className="w-4 h-4 text-blue-600" />
+                <User className="w-4 h-4 text-brand-600" />
                 Thông tin người dự thi (Bắt buộc)
               </h3>
 
@@ -345,7 +375,7 @@ export default function ExamPage() {
                     onChange={(e) =>
                       setUserInfo({ ...userInfo, fullName: e.target.value })
                     }
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
                   />
                 </div>
               </div>
@@ -385,7 +415,7 @@ export default function ExamPage() {
                       onChange={(e) =>
                         setUserInfo({ ...userInfo, rank: e.target.value })
                       }
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
                     />
                   </div>
                 </div>
@@ -404,7 +434,7 @@ export default function ExamPage() {
                       onChange={(e) =>
                         setUserInfo({ ...userInfo, position: e.target.value })
                       }
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
                     />
                   </div>
                 </div>
@@ -422,7 +452,7 @@ export default function ExamPage() {
                     onChange={(e) =>
                       setUserInfo({ ...userInfo, unit: e.target.value })
                     }
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm bg-white"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm bg-white"
                   >
                     {config.units.map((u) => (
                       <option key={u.name} value={u.name}>
@@ -440,7 +470,7 @@ export default function ExamPage() {
                 <button
                   type="submit"
                   disabled={!config.isOpen || busy}
-                  className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold text-base shadow-lg shadow-blue-500/25 hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                  className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-brand-600 to-brand-600 text-white font-semibold text-base shadow-lg shadow-brand-500/25 hover:from-brand-700 hover:to-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                 >
                   <span>
                     {busy ? "Đang tạo lượt thi..." : "Bắt Đầu Làm Bài Thi"}
@@ -491,7 +521,7 @@ export default function ExamPage() {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sticky top-18 z-40">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-bold">
+              <div className="w-10 h-10 rounded-xl bg-brand-50 text-brand-700 flex items-center justify-center font-bold">
                 {currentIndex + 1}/{totalQ}
               </div>
               <div>
@@ -540,7 +570,7 @@ export default function ExamPage() {
           {/* Progress bar */}
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
             <div
-              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+              className="bg-brand-600 h-1.5 rounded-full transition-all duration-300"
               style={{ width: `${progressPercent}%` }}
             ></div>
           </div>
@@ -549,7 +579,7 @@ export default function ExamPage() {
         {/* Nội dung câu hỏi */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
           <div className="mb-6">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-600 bg-blue-50 px-2.5 py-1 rounded-md">
+            <span className="text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-2.5 py-1 rounded-md">
               Câu hỏi {currentIndex + 1}
             </span>
             <h2 className="text-lg sm:text-xl font-medium text-slate-900 mt-3 leading-relaxed">
@@ -573,14 +603,14 @@ export default function ExamPage() {
                   onClick={() => handleSelectOption(key)}
                   className={`w-full text-left p-4 rounded-xl border transition-all flex items-start gap-3.5 ${
                     isSelected
-                      ? "border-blue-600 bg-blue-50/70 text-blue-900 ring-2 ring-blue-500/20"
+                      ? "border-brand-600 bg-brand-50/70 text-brand-900 ring-2 ring-brand-500/20"
                       : "border-slate-200 bg-white text-slate-800 hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
                   <div
                     className={`w-7 h-7 rounded-lg font-bold text-sm flex items-center justify-center shrink-0 transition-all ${
                       isSelected
-                        ? "bg-blue-600 text-white"
+                        ? "bg-brand-600 text-white"
                         : "bg-slate-100 text-slate-600"
                     }`}
                   >
@@ -637,7 +667,7 @@ export default function ExamPage() {
                   onClick={() => navigate(idx)}
                   className={`h-9 rounded-lg text-xs font-bold transition-all ${
                     isCurrent
-                      ? "bg-blue-600 text-white ring-2 ring-blue-600 ring-offset-2"
+                      ? "bg-brand-600 text-white ring-2 ring-brand-600 ring-offset-2"
                       : isAnswered
                         ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
                         : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -684,7 +714,7 @@ export default function ExamPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
             <div>
               <p className="text-xs text-slate-500 mb-1">Điểm số</p>
-              <p className="text-3xl font-extrabold text-blue-600">
+              <p className="text-3xl font-extrabold text-brand-600">
                 {result.score}
                 <span className="text-sm text-slate-400">/10</span>
               </p>
@@ -715,7 +745,7 @@ export default function ExamPage() {
           <div className="flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/dashboard"
-              className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm shadow-md shadow-blue-500/20 transition-all flex items-center gap-2"
+              className="px-6 py-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm shadow-md shadow-brand-500/20 transition-all flex items-center gap-2"
             >
               <BarChart className="w-4 h-4" />
               <span>Xem Số Lượng Dự Thi</span>
