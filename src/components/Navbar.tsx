@@ -31,10 +31,10 @@ export default function Navbar() {
               />
               <div className="flex flex-col">
                 <span className="font-bold text-brand-700 leading-tight text-base sm:text-xl">
-                  THI TRẮC NGHIỆM ĐOÀN
+                  HỆ THỐNG THI
                 </span>
                 <span className="text-xs text-slate-600 font-medium">
-                  Nghị Quyết Đại Hội Toàn Quốc XIII
+                  Trắc nghiệm online - Tú Mòe
                 </span>
               </div>
             </Link>
