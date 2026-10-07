@@ -31,10 +31,10 @@ export default function Navbar() {
               />
               <div className="flex flex-col">
                 <span className="font-bold text-brand-700 leading-tight text-base sm:text-xl">
-                  HỆ THỐNG THI
+                  HỆ THỐNG THI TRẮC NGHIỆM
                 </span>
                 <span className="text-xs text-slate-600 font-medium">
-                  Trắc nghiệm online - Đội Điều lệnh, Quân sự, Võ thuật, Thể dục thể thao và Văn thể
+                  Đội Điều lệnh, Quân sự, Võ thuật, Thể dục thể thao và Văn thể
                 </span>
               </div>
             </Link>
