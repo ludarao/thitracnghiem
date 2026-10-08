@@ -34,7 +34,7 @@ export default function Navbar() {
                   HỆ THỐNG THI TRẮC NGHIỆM
                 </span>
                 <span className="text-xs text-slate-600 font-medium">
-                  Đội Điều lệnh, Quân sự, Võ thuật, Thể dục thể thao và Văn thể
+                  Đội Điều lệnh, Quân sự, Võ thuật, Văn thể
                 </span>
               </div>
             </Link>
