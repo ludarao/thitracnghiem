@@ -34,6 +34,9 @@ export default function ExamPage() {
   const [security, setSecurity] = useState({ enabled: false, siteKey: "" });
   const [verificationToken, setVerificationToken] = useState("");
   const [verificationReset, setVerificationReset] = useState(0);
+  const [registrationReady, setRegistrationReady] = useState(false);
+  const [registrationLoading, setRegistrationLoading] = useState(false);
+  const registrationPending = useRef(false);
   const [config, setConfig] = useState<ExamConfig | null>(null);
   const [examState, setExamState] = useState<
     "REGISTER" | "IN_PROGRESS" | "FINISHED"
@@ -124,6 +127,39 @@ export default function ExamPage() {
       setBusy(false);
     }
   };
+  const loadRegistrationConfig = async () => {
+    if (registrationPending.current) return;
+    registrationPending.current = true;
+    setRegistrationReady(false);
+    setRegistrationLoading(true);
+    setVerificationToken("");
+    setVerificationReset((value) => value + 1);
+    try {
+      const data = await api("/api/config");
+      if (
+        typeof data.security?.enabled !== "boolean" ||
+        typeof data.security?.siteKey !== "string"
+      )
+        throw new Error("Không tải được cấu hình xác minh. Vui lòng thử lại.");
+      setConfig(data.config);
+      setSecurity(data.security);
+      setUserInfo((prev) => ({
+        ...prev,
+        unit: data.config.units.some(
+          (unit: { name: string }) => unit.name === prev.unit,
+        )
+          ? prev.unit
+          : data.config.units[0]?.name || "",
+      }));
+      setRegistrationReady(true);
+      setError("");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      registrationPending.current = false;
+      setRegistrationLoading(false);
+    }
+  };
   useEffect(() => {
     const load = async () => {
       try {
@@ -147,13 +183,7 @@ export default function ExamPage() {
           saveLocal(data);
           return;
         }
-        const data = await api("/api/config");
-        setConfig(data.config);
-        if (data.security) setSecurity(data.security);
-        setUserInfo((prev) => ({
-          ...prev,
-          unit: data.config.units[0]?.name || "",
-        }));
+        await loadRegistrationConfig();
       } catch (e) {
         setError((e as Error).message);
       }
@@ -186,6 +216,10 @@ export default function ExamPage() {
   const handleStartExam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
+    if (!registrationReady || registrationPending.current) {
+      setError("Vui lòng chờ tải cấu hình đăng ký hoặc bấm tải lại cấu hình.");
+      return;
+    }
     if (security.enabled && !verificationToken) {
       setError("Vui lòng hoàn tất xác minh trước khi bắt đầu.");
       return;
@@ -259,7 +293,11 @@ export default function ExamPage() {
       return (
         <div className="p-6 text-red-700">
           {error}
-          <button onClick={() => location.reload()} className="ml-4 underline">
+          <button
+            onClick={() => void loadRegistrationConfig()}
+            disabled={registrationLoading}
+            className="ml-4 underline"
+          >
             Thử lại
           </button>
         </div>
@@ -425,7 +463,23 @@ export default function ExamPage() {
               </div>
 
               <div className="pt-4">
-                {security.enabled &&
+                {!registrationReady && (
+                  <div className="mb-3 text-sm text-slate-600" role="status">
+                    {registrationLoading ? (
+                      "Đang tải cấu hình đăng ký và xác minh..."
+                    ) : (
+                      <button
+                        type="button"
+                        className="underline text-brand-700"
+                        onClick={() => void loadRegistrationConfig()}
+                      >
+                        Tải lại cấu hình đăng ký
+                      </button>
+                    )}
+                  </div>
+                )}
+                {registrationReady &&
+                  security.enabled &&
                   (security.siteKey ? (
                     <Verification
                       siteKey={security.siteKey}
@@ -442,6 +496,8 @@ export default function ExamPage() {
                 <button
                   type="submit"
                   disabled={
+                    !registrationReady ||
+                    registrationLoading ||
                     !config.isOpen ||
                     busy ||
                     (security.enabled && !verificationToken)
@@ -732,11 +788,11 @@ export default function ExamPage() {
                 frozen.current = null;
                 tokenRef.current = "";
                 sessionRef.current = null;
+                setRegistrationReady(false);
+                setError("");
                 setExamState("REGISTER");
                 setResult(null);
-                void api("/api/config")
-                  .then((data) => setConfig(data.config))
-                  .catch((e) => setError(e.message));
+                void loadRegistrationConfig();
               }}
               className="px-6 py-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm transition-all flex items-center gap-2"
             >
