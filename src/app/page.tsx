@@ -1,5 +1,8 @@
 "use client";
-import { formatServiceNumberInput } from "../lib/service-number-input";
+import {
+  candidateIdentity,
+  formatNameInitials,
+} from "../lib/candidate-identity";
 import Verification from "../components/Verification";
 
 import { useExamTab } from "../components/useExamTab";
@@ -71,7 +74,8 @@ export default function ExamPage() {
     "REGISTER" | "IN_PROGRESS" | "FINISHED"
   >("REGISTER");
   const [userInfo, setUserInfo] = useState<UserInfo>({
-    serviceNumber: "",
+    nameInitials: "",
+    phone: "",
     unit: "",
   });
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
@@ -478,15 +482,24 @@ export default function ExamPage() {
       document.removeEventListener("visibilitychange", update);
     };
   }, [ownership.status]);
-  const handleServiceNumberInput = (value: string) => {
+  const handleNameInitials = (value: string) => {
     try {
-      const serviceNumber = formatServiceNumberInput(value);
-      setUserInfo((prev) => ({ ...prev, serviceNumber }));
+      const nameInitials = formatNameInitials(value);
+      setUserInfo((prev) => ({ ...prev, nameInitials }));
       setError("");
     } catch (e) {
       setError((e as Error).message);
     }
   };
+  let registrationCode = "";
+  try {
+    registrationCode = candidateIdentity(
+      userInfo.nameInitials,
+      userInfo.phone,
+    ).candidateCode;
+  } catch {
+    /* Display only a complete, valid code. */
+  }
   const handleStartExam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy || ownership.status !== "owned" || recovery) return;
@@ -505,7 +518,13 @@ export default function ExamPage() {
       localStorage.removeItem("quiz_storage_check");
       const data = await api("/api/exam", {
         method: "POST",
-        body: JSON.stringify({ userInfo, verificationToken }),
+        body: JSON.stringify({
+          userInfo: {
+            ...candidateIdentity(userInfo.nameInitials, userInfo.phone),
+            unit: userInfo.unit,
+          },
+          verificationToken,
+        }),
       });
       tokenRef.current = data.token;
       frozen.current = null;
@@ -823,43 +842,73 @@ export default function ExamPage() {
 
               <div>
                 <label
-                  htmlFor="service-number"
+                  htmlFor="name-initials"
                   className="block text-sm font-medium text-slate-700 mb-1"
                 >
-                  1. Số hiệu <span className="text-red-500">*</span>
+                  1. Chữ cái viết tắt họ và tên{" "}
+                  <span className="text-red-500">*</span>
                 </label>
                 <input
-                  id="service-number"
+                  id="name-initials"
                   type="text"
                   required
-                  maxLength={7}
-                  inputMode="numeric"
-                  pattern="[0-9]{3}-[0-9]{3}"
-                  title="Nhập 6 chữ số, ví dụ 650-695"
-                  aria-describedby="service-number-hint"
+                  maxLength={20}
                   autoComplete="off"
-                  placeholder="Ví dụ: 649-605"
-                  value={userInfo.serviceNumber || ""}
-                  onChange={(e) => handleServiceNumberInput(e.target.value)}
-                  onPaste={(e) => {
-                    e.preventDefault();
-                    handleServiceNumberInput(e.clipboardData.getData("text"));
-                  }}
+                  autoCapitalize="none"
+                  spellCheck={false}
+                  placeholder="Ví dụ: ptb"
+                  aria-describedby="name-initials-hint"
+                  value={userInfo.nameInitials || ""}
+                  onChange={(e) => handleNameInitials(e.target.value)}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm"
                 />
                 <p
-                  id="service-number-hint"
+                  id="name-initials-hint"
                   className="text-xs text-slate-500 mt-1"
                 >
-                  Nhập 6 chữ số, dấu gạch ngang được thêm tự động (650695 →
-                  650-695). Số hiệu cũng là mã thí sinh. Dùng cùng số hiệu khi
-                  thi lại; hệ thống ghi nhận điểm cao nhất.
+                  Lấy chữ cái đầu của họ và tên. Ví dụ: Phạm Trần Bình → ptb.
+                  Chữ hoa tự chuyển thành chữ thường, bỏ dấu.
                 </p>
               </div>
+              <div>
+                <label
+                  htmlFor="candidate-phone"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  2. Số điện thoại <span className="text-red-500">*</span>
+                </label>
+                <input
+                  id="candidate-phone"
+                  type="tel"
+                  inputMode="tel"
+                  required
+                  maxLength={18}
+                  autoComplete="tel"
+                  placeholder="Ví dụ: 0985728123"
+                  value={userInfo.phone || ""}
+                  onChange={(e) => {
+                    setUserInfo((prev) => ({ ...prev, phone: e.target.value }));
+                    setError("");
+                  }}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  Dùng cùng viết tắt họ tên và số điện thoại khi thi lại; hệ
+                  thống ghi nhận điểm cao nhất.
+                </p>
+              </div>
+              {registrationCode && (
+                <p
+                  className="rounded-xl bg-brand-50 p-3 text-sm text-brand-700"
+                  role="status"
+                >
+                  Mã thí sinh: <strong>{registrationCode}</strong>
+                </p>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  2. Đơn vị <span className="text-red-500">*</span>
+                  3. Đơn vị <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -1001,7 +1050,7 @@ export default function ExamPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-800">
-                  {userInfo.serviceNumber || userInfo.candidateCode}
+                  {userInfo.candidateCode || userInfo.serviceNumber}
                 </p>
                 <p className="text-xs text-slate-500">{userInfo.unit}</p>
               </div>
@@ -1232,7 +1281,7 @@ export default function ExamPage() {
           <p className="text-sm text-slate-500 mb-6">
             Thí sinh:{" "}
             <span className="font-semibold text-slate-700">
-              {result.userInfo.serviceNumber || result.userInfo.candidateCode}
+              {result.userInfo.candidateCode || result.userInfo.serviceNumber}
             </span>{" "}
             ({result.userInfo.unit})
           </p>

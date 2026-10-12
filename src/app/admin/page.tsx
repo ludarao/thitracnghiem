@@ -500,7 +500,9 @@ export default function AdminPage() {
           <table className="w-full text-sm text-left">
             <thead>
               <tr>
-                <th className="p-2">Số hiệu / Mã thí sinh</th>
+                <th className="p-2">Mã thí sinh</th>
+                <th className="p-2">Viết tắt họ tên</th>
+                <th className="p-2">Số điện thoại</th>
                 <th className="p-2">Đơn vị</th>
                 <th className="p-2">Điểm</th>
                 <th className="p-2">Thời điểm nộp</th>
@@ -512,10 +514,12 @@ export default function AdminPage() {
               {history.map((r) => (
                 <tr key={r.id} className="border-t">
                   <td className="p-2">
-                    {r.userInfo.serviceNumber ||
-                      r.userInfo.candidateCode ||
+                    {r.userInfo.candidateCode ||
+                      r.userInfo.serviceNumber ||
                       r.id}
                   </td>
+                  <td className="p-2">{r.userInfo.nameInitials || "—"}</td>
+                  <td className="p-2">{r.userInfo.phone || "—"}</td>
                   <td className="p-2">{r.userInfo.unit}</td>
                   <td className="p-2">{r.score}/10</td>
                   <td className="p-2">

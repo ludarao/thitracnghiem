@@ -32,6 +32,7 @@ export interface ExamConfig {
 }
 
 export interface UserInfo {
+  nameInitials?: string; // Chữ cái viết tắt họ và tên; chuẩn hóa chữ thường
   serviceNumber?: string; // Số hiệu, cũng là mã thí sinh từ phiên bản 1.2
   phone?: string;
   candidateCode?: string;

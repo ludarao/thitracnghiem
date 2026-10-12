@@ -264,7 +264,7 @@ test("offline active attempt restores without loading registration config", asyn
   }
 });
 
-test("service number field formats typing and paste without losing leading zeroes", async () => {
+test("registration collects initials and phone, previews lowercase code, and sends only current fields", async () => {
   const h = setup();
   try {
     await h.flush();
@@ -274,27 +274,42 @@ test("service number field formats typing and paste without losing leading zeroe
     });
     h.button("Làm Lượt Khác").props.onClick();
     await h.flush();
-    const input = () =>
-      nodes(h.tree).find((n) => n.props?.id === "service-number");
-    input().props.onChange({ target: { value: "650695" } });
+    const input = (id) => nodes(h.tree).find((n) => n.props?.id === id);
+    assert.equal(input("service-number"), undefined);
+    input("name-initials").props.onChange({ target: { value: "P T B" } });
     h.render();
-    assert.equal(input().props.value, "650-695");
-    let prevented = false;
-    input().props.onPaste({
-      preventDefault() {
-        prevented = true;
-      },
-      clipboardData: { getData: () => "001002" },
+    input("candidate-phone").props.onChange({
+      target: { value: "0985728123" },
     });
     h.render();
-    assert.equal(prevented, true);
-    assert.equal(input().props.value, "001-002");
-    input().props.onPaste({
-      preventDefault() {},
-      clipboardData: { getData: () => "123456789" },
+    assert.equal(input("name-initials").props.value, "ptb");
+    assert.ok(text(h.tree).includes("ptb0985728123"));
+    let sent;
+    h.api = async (url, options) => {
+      sent = JSON.parse(options.body);
+      return {
+        ...session,
+        result: null,
+        token: "a".repeat(64),
+        userInfo: {
+          nameInitials: "ptb",
+          phone: "0985728123",
+          candidateCode: "ptb0985728123",
+          unit: "A",
+        },
+      };
+    };
+    await nodes(h.tree)
+      .find((n) => n.type === "form")
+      .props.onSubmit({ preventDefault() {} });
+    await h.flush();
+    assert.deepEqual(sent.userInfo, {
+      nameInitials: "ptb",
+      phone: "0985728123",
+      candidateCode: "ptb0985728123",
+      unit: "A",
     });
-    h.render();
-    assert.equal(input().props.value, "001-002");
+    assert.ok(text(h.tree).includes("ptb0985728123"));
   } finally {
     h.cleanup();
   }
@@ -526,8 +541,8 @@ test("confirm end discards only the local active attempt, returns to registratio
     assert.deepEqual(h.calls, ["/api/config"]);
     assert.equal(h.button("Kết thúc phiên thi"), undefined);
     assert.equal(h.button("Bắt Đầu").props.disabled, true);
-    const input = nodes(h.tree).find((n) => n.props?.id === "service-number");
-    assert.equal(input.props.value, "649-605");
+    const input = nodes(h.tree).find((n) => n.props?.id === "name-initials");
+    assert.equal(input.props.value, "");
     const widget = nodes(h.tree).find((n) => n.type === Verification);
     assert.equal(widget.props.siteKey, "new-site-key");
     h.emit("online");

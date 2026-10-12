@@ -108,7 +108,8 @@ try {
           method: "POST",
           body: JSON.stringify({
             userInfo: {
-              serviceNumber: String(100000 + i),
+              nameInitials: "test",
+              phone: "09" + String(10000000 + i),
               unit: config.data.config.units[i % 10].name,
             },
           }),
@@ -167,7 +168,8 @@ try {
     method: "POST",
     body: JSON.stringify({
       userInfo: {
-        serviceNumber: "100000",
+        nameInitials: "test",
+        phone: "0910000000",
         unit: config.data.config.units[0].name,
       },
     }),

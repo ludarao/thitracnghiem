@@ -17,7 +17,7 @@ import {
   checkOrigin,
   failure,
 } from "../../../lib/server";
-import { normalizeServiceNumber } from "../../../lib/quiz-rules";
+import { candidateIdentity } from "../../../lib/candidate-identity";
 import { getAttempt, submitAttempt } from "../../../lib/attempt-service";
 import {
   saveBank,
@@ -50,16 +50,19 @@ export async function POST(req: NextRequest) {
       !cfg.units.some((u) => u.name === info.unit)
     )
       throw new Error("Vui lòng chọn đơn vị trong danh sách.");
-    const serviceNumber = normalizeServiceNumber(info.serviceNumber);
+    const identity = candidateIdentity(info.nameInitials, info.phone);
     const snapshot = {
-      serviceNumber,
-      candidateCode: serviceNumber,
+      ...identity,
       unit: info.unit,
     };
     const candidate = await prisma.candidate.upsert({
-      where: { code: serviceNumber },
+      where: { code: identity.candidateCode },
       update: {},
-      create: { phone: null, code: serviceNumber, info: snapshot },
+      create: {
+        phone: identity.phone,
+        code: identity.candidateCode,
+        info: snapshot,
+      },
     });
     const raw = issueAttemptToken();
     const now = new Date();

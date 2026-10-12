@@ -44,9 +44,10 @@ model QuizSettings {
 }
 model Candidate {
   id String @id @default(cuid())
-  phone String? @unique
+  phone String?
   code String @unique
   info Json
+  @@index([phone])
 }
 model Attempt {
   id String @id @default(cuid())

@@ -247,7 +247,8 @@ const settings = require("../src/app/api/config/route.ts");
 const results = require("../src/app/api/results/route.ts");
 const examData = require("../src/app/api/admin/exam-data/route.ts");
 const userInfo = {
-  serviceNumber: "649-605",
+  nameInitials: "ptb",
+  phone: "0985728123",
   unit: DEFAULT_CONFIG.units[0].name,
 };
 
@@ -289,32 +290,47 @@ async function login() {
   return { Cookie: response.headers.get("set-cookie").split(";")[0] };
 }
 
-test("API hồ sơ 1.2: cùng số hiệu dùng cùng mã; chỉ lưu số hiệu và đơn vị", async () => {
+test("API hồ sơ: chuẩn hóa viết tắt và điện thoại, dùng mã ghép khi thi lại", async () => {
   reset();
   const first = await start({
     ...userInfo,
+    nameInitials: " P T B ",
     fullName: "Không thu thập",
-    phone: "0912345678",
     rank: "Không thu thập",
     position: "Không thu thập",
+    serviceNumber: "649-605",
+    candidateCode: "fake",
   });
-  const second = await start({ ...userInfo, serviceNumber: "649605" });
-  assert.equal(first.candidateCode, "649-605");
+  const second = await start({
+    ...userInfo,
+    nameInitials: "PTB",
+    phone: "+84 985 728 123",
+  });
+  assert.equal(first.candidateCode, "ptb0985728123");
   assert.equal(second.candidateCode, first.candidateCode);
   assert.equal(candidates.size, 1);
-  assert.deepEqual(first.userInfo, { ...userInfo, candidateCode: "649-605" });
+  assert.deepEqual(first.userInfo, {
+    ...userInfo,
+    candidateCode: "ptb0985728123",
+  });
   assert.deepEqual([...candidates.values()][0].info, first.userInfo);
-  assert.equal([...candidates.values()][0].phone, null);
-  const third = await start({ ...userInfo, serviceNumber: "649-606" });
+  assert.equal([...candidates.values()][0].phone, "0985728123");
+  const third = await start({ ...userInfo, phone: "0985728124" });
   assert.notEqual(third.candidateCode, first.candidateCode);
-  assert.equal(candidates.size, 2);
+  const fourth = await start({ ...userInfo, nameInitials: "nva" });
+  assert.equal(fourth.candidateCode, "nva0985728123");
+  assert.equal(candidates.size, 3);
 });
-test("API số hiệu: từ chối thiếu/sai số hiệu và đơn vị ngoài danh sách", async () => {
+test("API đăng ký: từ chối thiếu/sai viết tắt, điện thoại và đơn vị", async () => {
   reset();
   for (const info of [
     { unit: userInfo.unit },
-    { ...userInfo, serviceNumber: "" },
-    { ...userInfo, serviceNumber: "a<script>" },
+    { ...userInfo, nameInitials: "" },
+    { ...userInfo, nameInitials: "a<script>" },
+    { ...userInfo, nameInitials: "123" },
+    { ...userInfo, phone: "" },
+    { ...userInfo, phone: "098572812" },
+    { ...userInfo, phone: 985728123 },
     { ...userInfo, unit: "Đơn vị không tồn tại" },
   ]) {
     const response = await expectedError(() =>
@@ -323,7 +339,6 @@ test("API số hiệu: từ chối thiếu/sai số hiệu và đơn vị ngoài
     assert.equal(response.status, 400);
   }
   assert.equal(candidates.size, 0);
-  assert.equal(attempts.size, 0);
 });
 test("API lượt thi: không lộ đáp án đúng, chấm server và nộp trùng không đổi kết quả", async () => {
   reset();
@@ -453,10 +468,7 @@ test("API kỳ mới: giữ lịch sử, bảng kỳ mới rỗng, chỉ admin x
     await results.GET(req("/api/results?history=1", "GET", undefined, headers))
   ).json();
   assert.equal(history.history.length, 1);
-  assert.equal(
-    history.history[0].userInfo.serviceNumber,
-    userInfo.serviceNumber,
-  );
+  assert.equal(history.history[0].userInfo.phone, userInfo.phone);
 });
 test("API offline: nhận bài sau hạn, giữ hạn giờ và không tự chấm lượt chưa gửi", async () => {
   reset();
@@ -628,7 +640,7 @@ test("API số lượng: bằng điểm lấy đơn vị lượt mới hơn, ch�
   });
   await new Promise((r) => setTimeout(r, 2));
   await action(second.token, { action: "submit", answers: {} });
-  await start({ ...userInfo, serviceNumber: "649-607" });
+  await start({ ...userInfo, phone: "0985728125" });
   const data = await (await results.GET(req("/api/results?counts=1"))).json();
   assert.equal(
     data.units.find((r) => r.unit === userInfo.unit).participantCount,
@@ -1126,7 +1138,7 @@ test("legacy sessions continue; unknown legacy tokens share one allowlist load i
 test("submit limit is per attempt, returns Retry-After, and resets after a minute", async () => {
   reset();
   const first = await start(),
-    second = await start({ ...userInfo, serviceNumber: "649-606" });
+    second = await start({ ...userInfo, phone: "0985728124" });
   for (let i = 0; i < 6; i++)
     assert.equal(
       (await action(first.token, { action: "submit", answers: { 1: "A" } }))
