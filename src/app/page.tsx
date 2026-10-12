@@ -83,6 +83,7 @@ export default function ExamPage() {
   const [result, setResult] = useState<ExamResult | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   const sessionRef = useRef<Session | null>(null);
   const tokenRef = useRef("");
   const clockOffset = useRef(0);
@@ -537,6 +538,35 @@ export default function ExamPage() {
       setError("Không lưu được tiến độ trên máy.");
     }
   };
+  const startAnotherAttempt = () => {
+    // Do not discard a session while its submission response is still pending.
+    if (ownership.status !== "owned" || pending.current) return;
+    try {
+      localStorage.removeItem("quiz_active_attempt");
+      localStorage.removeItem(LOCAL_ATTEMPT_KEY);
+    } catch {
+      setError("Không thể kết thúc phiên trên máy. Vui lòng thử lại.");
+      return;
+    }
+    frozen.current = null;
+    guardRef.current = emptyGuard();
+    setGuard(guardRef.current);
+    setCopyNotice("");
+    tokenRef.current = "";
+    sessionRef.current = null;
+    setRegistrationReady(false);
+    setVerificationToken("");
+    setShowEndConfirmation(false);
+    setCurrentIndex(0);
+    setSelectedAnswers({});
+    setExamQuestions([]);
+    setTimeRemainingTotal(0);
+    setError("");
+    setExamState("REGISTER");
+    setResult(null);
+    void loadRegistrationConfig();
+  };
+
   const handleSubmitExam = () => {
     if (frozen.current || canInteract()) void submit();
   };
@@ -951,6 +981,14 @@ export default function ExamPage() {
             </div>
 
             <div className="flex items-center gap-4">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => setShowEndConfirmation(true)}
+                className="px-3 py-2 rounded-xl border border-red-200 text-red-700 hover:bg-red-50 text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Kết thúc phiên thi
+              </button>
               {/* Tổng thời gian */}
               <div
                 className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-sm font-bold shadow-sm ${
@@ -964,6 +1002,37 @@ export default function ExamPage() {
               </div>
             </div>
           </div>
+
+          {showEndConfirmation && (
+            <div
+              role="alert"
+              className="mt-4 p-4 rounded-xl border border-red-200 bg-red-50 space-y-3"
+            >
+              <p className="text-sm text-red-800">
+                Bỏ lượt đang làm và quay về đăng ký để thi lại? Lượt này sẽ
+                không được nộp kết quả. Kết quả những lượt đã nộp trước đó vẫn
+                được giữ. Đồng hồ vẫn tiếp tục chạy đến khi xác nhận.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setShowEndConfirmation(false)}
+                  className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm disabled:opacity-40"
+                >
+                  Tiếp tục làm bài
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={startAnotherAttempt}
+                  className="px-3 py-2 rounded-xl bg-red-600 text-white text-sm disabled:opacity-40"
+                >
+                  Xác nhận kết thúc và thi lại
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Progress bar */}
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
@@ -1182,21 +1251,7 @@ export default function ExamPage() {
             </Link>
 
             <button
-              onClick={() => {
-                localStorage.removeItem("quiz_active_attempt");
-                localStorage.removeItem("quiz_local_attempt_v2");
-                frozen.current = null;
-                guardRef.current = emptyGuard();
-                setGuard(guardRef.current);
-                setCopyNotice("");
-                tokenRef.current = "";
-                sessionRef.current = null;
-                setRegistrationReady(false);
-                setError("");
-                setExamState("REGISTER");
-                setResult(null);
-                void loadRegistrationConfig();
-              }}
+              onClick={startAnotherAttempt}
               className="px-6 py-3 rounded-xl border border-slate-200 text-slate-700 hover:bg-slate-50 font-medium text-sm transition-all flex items-center gap-2"
             >
               <RefreshCcw className="w-4 h-4" />

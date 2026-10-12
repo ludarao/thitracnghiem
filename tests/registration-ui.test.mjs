@@ -476,3 +476,86 @@ test("manual submission appears only on final question with every answer selecte
     }
   }
 });
+
+test("end-session button stays visible; cancelling confirmation preserves the attempt without requests", async () => {
+  const h = setup({ ...session, result: null, answers: {} });
+  try {
+    await h.flush();
+    const before = h.storage.get("quiz_local_attempt_v2");
+    assert.ok(h.button("Kết thúc phiên thi"));
+    assert.equal(h.button("Nộp Bài"), undefined);
+    h.button("Kết thúc phiên thi").props.onClick();
+    h.render();
+    assert.ok(h.button("Xác nhận kết thúc và thi lại"));
+    h.button("Tiếp tục làm bài").props.onClick();
+    h.render();
+    assert.equal(h.button("Xác nhận kết thúc và thi lại"), undefined);
+    assert.equal(h.storage.get("quiz_local_attempt_v2"), before);
+    assert.deepEqual(h.calls, []);
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("confirm end discards only the local active attempt, returns to registration and reloads verification", async () => {
+  const h = setup({ ...session, result: null, answers: {} });
+  try {
+    await h.flush();
+    h.api = async (url) => {
+      h.calls.push(url);
+      return {
+        config: cfg,
+        security: { enabled: true, siteKey: "new-site-key" },
+      };
+    };
+    h.button("Kết thúc phiên thi").props.onClick();
+    h.render();
+    h.button("Xác nhận kết thúc và thi lại").props.onClick();
+    await h.flush();
+    assert.equal(h.storage.has("quiz_local_attempt_v2"), false);
+    assert.equal(h.storage.has("quiz_active_attempt"), false);
+    assert.deepEqual(h.calls, ["/api/config"]);
+    assert.equal(h.button("Kết thúc phiên thi"), undefined);
+    assert.equal(h.button("Bắt Đầu").props.disabled, true);
+    const input = nodes(h.tree).find((n) => n.props?.id === "service-number");
+    assert.equal(input.props.value, "649-605");
+    const widget = nodes(h.tree).find((n) => n.type === Verification);
+    assert.equal(widget.props.siteKey, "new-site-key");
+    h.emit("online");
+    await h.flush();
+    assert.deepEqual(h.calls, ["/api/config"]);
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("end-session cannot discard a pending submission", async () => {
+  const h = setup({ ...session, result: null });
+  const previousConfirm = globalThis.confirm;
+  globalThis.confirm = () => true;
+  try {
+    await h.flush();
+    let resolve;
+    h.api = (url) => {
+      h.calls.push(url);
+      return new Promise((r) => {
+        resolve = r;
+      });
+    };
+    h.button("Kết thúc phiên thi").props.onClick();
+    h.render();
+    h.button("Nộp Bài").props.onClick();
+    h.render();
+    assert.equal(h.button("Kết thúc phiên thi").props.disabled, true);
+    assert.equal(h.button("Xác nhận kết thúc và thi lại").props.disabled, true);
+    h.button("Xác nhận kết thúc và thi lại").props.onClick();
+    assert.ok(h.storage.has("quiz_local_attempt_v2"));
+    assert.deepEqual(h.calls, ["/api/exam"]);
+    resolve(session);
+    await h.flush();
+    assert.ok(h.button("Làm Lượt Khác"));
+  } finally {
+    globalThis.confirm = previousConfirm;
+    h.cleanup();
+  }
+});
