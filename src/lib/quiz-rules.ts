@@ -1,5 +1,14 @@
 import { randomInt } from "node:crypto";
 import type { ExamConfig, Question } from "../types/quiz";
+export function normalizeServiceNumber(value: unknown): string {
+  if (typeof value !== "string") throw new Error("Vui lòng nhập số hiệu.");
+  const number = value.trim();
+  if (number.length > 32 || !/^\d+(?:-\d+)*$/.test(number))
+    throw new Error(
+      "Số hiệu gồm chữ số và dấu gạch ngang, tối đa 32 ký tự (ví dụ: 649-605).",
+    );
+  return number;
+}
 export function normalizePhone(value: string) {
   let phone = value.replace(/[\s().-]/g, "");
   if (phone.startsWith("+84")) phone = "0" + phone.slice(3);

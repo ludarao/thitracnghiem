@@ -154,9 +154,6 @@ export async function GET(req: NextRequest) {
                 ...r,
                 answers: [],
                 userInfo: {
-                  fullName: r.userInfo.fullName,
-                  rank: r.userInfo.rank,
-                  position: r.userInfo.position,
                   unit: r.userInfo.unit,
                 },
               },

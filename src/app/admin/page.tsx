@@ -421,9 +421,8 @@ export default function AdminPage() {
           <table className="w-full text-sm text-left">
             <thead>
               <tr>
-                <th className="p-2">Mã thí sinh</th>
-                <th className="p-2">Họ tên</th>
-                <th className="p-2">Điện thoại</th>
+                <th className="p-2">Số hiệu / Mã thí sinh</th>
+                <th className="p-2">Đơn vị</th>
                 <th className="p-2">Điểm</th>
                 <th className="p-2">Thời điểm nộp</th>
                 <th className="p-2">Kỳ thi</th>
@@ -432,9 +431,12 @@ export default function AdminPage() {
             <tbody>
               {history.map((r) => (
                 <tr key={r.id} className="border-t">
-                  <td className="p-2">{r.userInfo.candidateCode}</td>
-                  <td className="p-2">{r.userInfo.fullName}</td>
-                  <td className="p-2">{r.userInfo.phone}</td>
+                  <td className="p-2">
+                    {r.userInfo.serviceNumber ||
+                      r.userInfo.candidateCode ||
+                      r.id}
+                  </td>
+                  <td className="p-2">{r.userInfo.unit}</td>
                   <td className="p-2">{r.score}/10</td>
                   <td className="p-2">
                     {new Date(r.submittedAt).toLocaleString("vi-VN")}

@@ -60,12 +60,12 @@ const db = {
   },
   candidate: {
     upsert: async ({ where, create }) => {
-      if (!candidates.has(where.phone))
-        candidates.set(where.phone, {
+      if (!candidates.has(where.code))
+        candidates.set(where.code, {
           id: "candidate-" + ++sequence,
           ...create,
         });
-      return candidates.get(where.phone);
+      return candidates.get(where.code);
     },
   },
   attempt: {
@@ -212,12 +212,10 @@ const admin = require("../src/app/api/admin/route.ts");
 const settings = require("../src/app/api/config/route.ts");
 const results = require("../src/app/api/results/route.ts");
 const userInfo = {
-  fullName: "Nguyễn Văn An",
-  phone: "0912345678",
-  rank: "Đoàn viên",
-  position: "Cán bộ",
+  serviceNumber: "649-605",
   unit: DEFAULT_CONFIG.units[0].name,
 };
+
 function req(path, method = "GET", body, headers = {}) {
   return new NextRequest("http://localhost:3000" + path, {
     method,
@@ -256,21 +254,41 @@ async function login() {
   return { Cookie: response.headers.get("set-cookie").split(";")[0] };
 }
 
-test("API hồ sơ: cùng số điện thoại dùng cùng hồ sơ/mã, tên khác bị từ chối", async () => {
+test("API hồ sơ 1.2: cùng số hiệu dùng cùng mã; chỉ lưu số hiệu và đơn vị", async () => {
   reset();
-  const first = await start();
-  const second = await start({ ...userInfo, phone: "+84 912 345 678" });
-  assert.equal(first.candidateCode, "NVA0912345678");
+  const first = await start({
+    ...userInfo,
+    fullName: "Không thu thập",
+    phone: "0912345678",
+    rank: "Không thu thập",
+    position: "Không thu thập",
+  });
+  const second = await start({ ...userInfo, serviceNumber: " 649-605 " });
+  assert.equal(first.candidateCode, "649-605");
   assert.equal(second.candidateCode, first.candidateCode);
   assert.equal(candidates.size, 1);
-  const response = await expectedError(() =>
-    exam.POST(
-      req("/api/exam", "POST", {
-        userInfo: { ...userInfo, fullName: "Tên Khác" },
-      }),
-    ),
-  );
-  assert.equal(response.status, 400);
+  assert.deepEqual(first.userInfo, { ...userInfo, candidateCode: "649-605" });
+  assert.deepEqual([...candidates.values()][0].info, first.userInfo);
+  assert.equal([...candidates.values()][0].phone, null);
+  const third = await start({ ...userInfo, serviceNumber: "649-606" });
+  assert.notEqual(third.candidateCode, first.candidateCode);
+  assert.equal(candidates.size, 2);
+});
+test("API số hiệu: từ chối thiếu/sai số hiệu và đơn vị ngoài danh sách", async () => {
+  reset();
+  for (const info of [
+    { unit: userInfo.unit },
+    { ...userInfo, serviceNumber: "" },
+    { ...userInfo, serviceNumber: "a<script>" },
+    { ...userInfo, unit: "Đơn vị không tồn tại" },
+  ]) {
+    const response = await expectedError(() =>
+      exam.POST(req("/api/exam", "POST", { userInfo: info })),
+    );
+    assert.equal(response.status, 400);
+  }
+  assert.equal(candidates.size, 0);
+  assert.equal(attempts.size, 0);
 });
 test("API lượt thi: không lộ đáp án đúng, chấm server và nộp trùng không đổi kết quả", async () => {
   reset();
@@ -387,7 +405,7 @@ test("API cấu hình: admin lưu dữ liệu chung, nhập câu sai không làm
   assert.equal(invalid.status, 400);
   assert.equal(config.questions.length, 2);
 });
-test("API kỳ mới: giữ lịch sử, bảng kỳ mới rỗng, chỉ admin xem được điện thoại trong lịch sử", async () => {
+test("API kỳ mới: giữ lịch sử, bảng kỳ mới rỗng, chỉ admin xem được số hiệu trong lịch sử", async () => {
   reset();
   const { token } = await start();
   await action(token, { action: "submit", answers: {} });
@@ -400,7 +418,10 @@ test("API kỳ mới: giữ lịch sử, bảng kỳ mới rỗng, chỉ admin x
     await results.GET(req("/api/results?history=1", "GET", undefined, headers))
   ).json();
   assert.equal(history.history.length, 1);
-  assert.equal(history.history[0].userInfo.phone, userInfo.phone);
+  assert.equal(
+    history.history[0].userInfo.serviceNumber,
+    userInfo.serviceNumber,
+  );
 });
 test("API offline: nhận bài sau hạn, giữ hạn giờ và không tự chấm lượt chưa gửi", async () => {
   reset();
@@ -572,7 +593,7 @@ test("API số lượng: bằng điểm lấy đơn vị lượt mới hơn, ch�
   });
   await new Promise((r) => setTimeout(r, 2));
   await action(second.token, { action: "submit", answers: {} });
-  await start({ ...userInfo, phone: "0987654321" });
+  await start({ ...userInfo, serviceNumber: "649-607" });
   const data = await (await results.GET(req("/api/results?counts=1"))).json();
   assert.equal(
     data.units.find((r) => r.unit === userInfo.unit).participantCount,

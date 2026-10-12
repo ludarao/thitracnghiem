@@ -29,11 +29,12 @@ export interface ExamConfig {
 }
 
 export interface UserInfo {
+  serviceNumber?: string; // Số hiệu, cũng là mã thí sinh từ phiên bản 1.2
   phone?: string;
   candidateCode?: string;
-  fullName: string;
-  rank: string; // Cấp bậc
-  position: string; // Chức vụ
+  fullName?: string;
+  rank?: string; // Cấp bậc
+  position?: string; // Chức vụ
   unit: string; // Đơn vị
 }
 

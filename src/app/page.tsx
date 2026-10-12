@@ -9,8 +9,6 @@ import {
   AlertCircle,
   CheckCircle2,
   User,
-  ShieldCheck,
-  Briefcase,
   Building2,
   ChevronRight,
   ChevronLeft,
@@ -41,11 +39,8 @@ export default function ExamPage() {
     "REGISTER" | "IN_PROGRESS" | "FINISHED"
   >("REGISTER");
   const [userInfo, setUserInfo] = useState<UserInfo>({
-    fullName: "",
-    rank: "",
-    position: "Cán bộ",
+    serviceNumber: "",
     unit: "",
-    phone: "",
   });
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -373,87 +368,38 @@ export default function ExamPage() {
               </h3>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  1. Họ và tên <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ví dụ: Nguyễn Văn An"
-                    value={userInfo.fullName}
-                    onChange={(e) =>
-                      setUserInfo({ ...userInfo, fullName: e.target.value })
-                    }
-                    className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Số điện thoại *
+                <label
+                  htmlFor="service-number"
+                  className="block text-sm font-medium text-slate-700 mb-1"
+                >
+                  1. Số hiệu <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="service-number"
+                  type="text"
                   required
-                  type="tel"
-                  autoComplete="tel"
-                  value={userInfo.phone || ""}
+                  maxLength={32}
+                  pattern="[0-9]+(-[0-9]+)*"
+                  autoComplete="off"
+                  placeholder="Ví dụ: 649-605"
+                  value={userInfo.serviceNumber || ""}
                   onChange={(e) =>
-                    setUserInfo({ ...userInfo, phone: e.target.value })
+                    setUserInfo({
+                      serviceNumber: e.target.value,
+                      unit: userInfo.unit,
+                    })
                   }
-                  placeholder="0912345678"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm"
                 />
                 <p className="text-xs text-slate-500 mt-1">
-                  Dùng cùng họ tên và số điện thoại để thi lại. Kết quả ghi nhận
-                  lượt có điểm cao nhất (bằng điểm lấy lượt nộp mới hơn).
+                  Số hiệu cũng là mã thí sinh. Dùng cùng số hiệu khi thi lại; hệ
+                  thống ghi nhận điểm cao nhất.
                 </p>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    2. Cấp bậc <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <ShieldCheck className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ví dụ: Binh nhất, Hạ sĩ, Thiếu úy..."
-                      value={userInfo.rank}
-                      onChange={(e) =>
-                        setUserInfo({ ...userInfo, rank: e.target.value })
-                      }
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">
-                    3. Chức vụ <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Briefcase className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="Ví dụ: Đoàn viên, Bí thư chi đoàn..."
-                      value={userInfo.position}
-                      onChange={(e) =>
-                        setUserInfo({ ...userInfo, position: e.target.value })
-                      }
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent text-sm"
-                    />
-                  </div>
-                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">
-                  4. Đơn vị <span className="text-red-500">*</span>
+                  2. Đơn vị <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <Building2 className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
@@ -556,11 +502,9 @@ export default function ExamPage() {
               </div>
               <div>
                 <p className="text-sm font-semibold text-slate-800">
-                  {userInfo.fullName}
+                  {userInfo.serviceNumber || userInfo.candidateCode}
                 </p>
-                <p className="text-xs text-slate-500">
-                  {userInfo.unit} • {userInfo.rank}
-                </p>
+                <p className="text-xs text-slate-500">{userInfo.unit}</p>
               </div>
             </div>
 
@@ -736,9 +680,9 @@ export default function ExamPage() {
           <p className="text-sm text-slate-500 mb-6">
             Thí sinh:{" "}
             <span className="font-semibold text-slate-700">
-              {result.userInfo.fullName}
+              {result.userInfo.serviceNumber || result.userInfo.candidateCode}
             </span>{" "}
-            ({result.userInfo.rank} - {result.userInfo.unit})
+            ({result.userInfo.unit})
           </p>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-slate-50 rounded-2xl border border-slate-100 mb-6">

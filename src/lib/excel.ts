@@ -126,15 +126,8 @@ export function exportResultsToExcel(
   // Sheet 2: Danh sách cá nhân
   const personalData = results.map((res, idx) => ({
     STT: idx + 1,
-    "Họ và tên": res.userInfo.fullName,
-    ...(res.userInfo.candidateCode
-      ? {
-          "Mã thí sinh": res.userInfo.candidateCode,
-          "Số điện thoại": res.userInfo.phone,
-        }
-      : {}),
-    "Cấp bậc": res.userInfo.rank,
-    "Chức vụ": res.userInfo.position,
+    "Số hiệu / Mã thí sinh":
+      res.userInfo.serviceNumber || res.userInfo.candidateCode || res.id,
     "Đơn vị": res.userInfo.unit,
     "Điểm số (/10)": res.score,
     "Số câu đúng": `${res.correctCount}/${res.totalQuestions}`,

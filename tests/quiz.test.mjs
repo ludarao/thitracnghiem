@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   normalizePhone,
+  normalizeServiceNumber,
   candidateCode,
   validateQuestions,
   prepareQuestions,
@@ -176,4 +177,11 @@ test("Điểm cao nhất: bằng điểm lấy lượt mới hơn, rồi ID đ�
     { id: "3", candidateId: "a", submittedAt: new Date(2000), score: 10 },
   ];
   assert.equal(bestAttempts(attempts)[0].id, "3");
+});
+
+test("Số hiệu giữ nguyên dấu gạch ngang và số 0 đầu", () => {
+  assert.equal(normalizeServiceNumber(" 649-605 "), "649-605");
+  assert.equal(normalizeServiceNumber("001-002"), "001-002");
+  for (const value of [null, "", "649--605", "649 605", "abc", "1".repeat(33)])
+    assert.throws(() => normalizeServiceNumber(value));
 });

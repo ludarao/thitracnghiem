@@ -11,7 +11,7 @@ import {
   checkOrigin,
   failure,
 } from "../../../lib/server";
-import { normalizePhone, candidateCode } from "../../../lib/quiz-rules";
+import { normalizeServiceNumber } from "../../../lib/quiz-rules";
 import { getAttempt, submitAttempt } from "../../../lib/attempt-service";
 import {
   saveBank,
@@ -39,45 +39,23 @@ export async function POST(req: NextRequest) {
     if (!cfg.isOpen) throw new Error("Kỳ thi đang đóng.");
     if (
       !info ||
-      !["fullName", "rank", "position", "unit"].every(
-        (key) =>
-          typeof info[key as keyof UserInfo] === "string" &&
-          (info[key as keyof UserInfo] as string).trim().length > 0 &&
-          (info[key as keyof UserInfo] as string).length <= 200,
-      )
+      typeof info.unit !== "string" ||
+      !cfg.units.some((u) => u.name === info.unit)
     )
-      throw new Error("Vui lòng điền đủ thông tin thí sinh.");
-    if (!cfg.units.some((u) => u.name === info.unit))
-      throw new Error("Đơn vị không hợp lệ.");
-    const phone = normalizePhone(info.phone ?? "");
-    const name = info.fullName.trim().replace(/\s+/g, " ");
+      throw new Error("Vui lòng chọn đơn vị trong danh sách.");
+    const serviceNumber = normalizeServiceNumber(info.serviceNumber);
+    const snapshot = {
+      serviceNumber,
+      candidateCode: serviceNumber,
+      unit: info.unit,
+    };
     const candidate = await prisma.candidate.upsert({
-      where: { phone },
+      where: { code: serviceNumber },
       update: {},
-      create: {
-        phone,
-        code: candidateCode(name, phone),
-        info: JSON.parse(JSON.stringify({ ...info, fullName: name, phone })),
-      },
+      create: { phone: null, code: serviceNumber, info: snapshot },
     });
-    const existingInfo = candidate.info as unknown as UserInfo;
-    if (
-      existingInfo.fullName.toLocaleLowerCase("vi") !==
-      name.toLocaleLowerCase("vi")
-    )
-      throw new Error(
-        "Số điện thoại đã đăng ký với họ tên khác. Vui lòng liên hệ quản trị viên.",
-      );
     const raw = token();
     const now = new Date();
-    const snapshot = {
-      fullName: name,
-      rank: info.rank.trim(),
-      position: info.position.trim(),
-      unit: info.unit,
-      phone,
-      candidateCode: candidate.code,
-    };
     const bankId = await saveBank(s.questions as unknown as Question[]);
     const { units, ...attemptConfig } = cfg;
     const attempt = await prisma.attempt.create({
