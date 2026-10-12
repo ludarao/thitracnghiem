@@ -928,8 +928,7 @@ export default function ExamPage() {
                   </select>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  * Bạn được ghi nhận đã dự thi tại đơn vị của lượt có điểm cao
-                  nhất (bằng điểm lấy lượt làm nhanh nhất).
+                  * Chọn mã đơn vị đã được cung cấp trước
                 </p>
               </div>
 
