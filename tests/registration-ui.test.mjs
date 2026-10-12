@@ -440,3 +440,39 @@ test("copy prevention is scoped to question panel and does not terminate attempt
     h.cleanup();
   }
 });
+
+test("manual submission appears only on final question with every answer selected", async () => {
+  const questions = [session.questions[0], { ...session.questions[0], id: 2 }];
+  for (const [answers, currentIndex, visible] of [
+    [{}, 0, false],
+    [{ 1: "A" }, 1, false],
+    [{ 1: "A", 2: "B" }, 0, false],
+    [{ 1: "A", 2: "B" }, 1, true],
+  ]) {
+    const h = setup({
+      ...session,
+      result: null,
+      config: { ...cfg, questionCount: 2 },
+      questions,
+      answers,
+      currentIndex,
+    });
+    try {
+      await h.flush();
+      const buttons = nodes(h.tree).filter(
+        (n) => n.type === "button" && text(n) === "Nộp Bài",
+      );
+      assert.equal(buttons.length, visible ? 1 : 0);
+      if (visible) {
+        const row = nodes(h.tree).find((n) =>
+          n.props?.children?.includes?.(buttons[0]),
+        );
+        assert.ok(text(row).includes("Câu trước"));
+        assert.equal(h.button("Câu sau"), undefined);
+      }
+      assert.deepEqual(h.calls, []);
+    } finally {
+      h.cleanup();
+    }
+  }
+});

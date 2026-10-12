@@ -1,0 +1,11 @@
+# Nộp bài và quản lý dữ liệu bài thi
+
+- Nút nộp thủ công chỉ hiện ở câu cuối khi tất cả câu đã có đáp án, thay vị trí Câu sau. Hết giờ hoặc quá thời gian rời ứng dụng vẫn nộp phần đã làm; nộp lại khi lỗi mạng vẫn hoạt động.
+- Admin có nút xuất JSON toàn bộ dữ liệu của tất cả kỳ, không phụ thuộc trang lịch sử 50 dòng: lượt đã nộp/chưa nộp, đáp án, kết quả, hồ sơ thí sinh, các phiên bản đề và cấu hình. Không xuất tài khoản/mật khẩu/phiên đăng nhập Admin. JSON giữ dữ liệu chi tiết; nút Excel trang hiện tại vẫn giữ nguyên. Chưa có chức năng nhập lại JSON tự động.
+- Xuất theo trang tối đa 100 bản ghi và ngân sách khoảng 3 MB/phản hồi để tránh phản hồi quá lớn. Nếu một bản ghi quá lớn, xuất dừng với thông báo; không tạo file thiếu một phần. Đổi kỳ/xóa trong lúc xuất cũng dừng. Nên đóng kỳ trước khi xuất: xuất nhiều trang không phải bản chụp database tại cùng một thời điểm, người đang thi vẫn có thể nộp trong khi xuất. Khi cần bản sao tại một thời điểm hoặc khôi phục database hoàn chỉnh, dùng công cụ sao lưu PostgreSQL.
+- Xóa cần phiên Admin hợp lệ và nhập lại đúng mật khẩu đã lưu trong database. Kiểm tra nguồn yêu cầu và giới hạn kích thước nội dung. Không dựa vào ADMIN_PASSWORD cũ nếu Admin đã đổi mật khẩu.
+- Xóa toàn bộ bảng Attempt và ExamResult trong một transaction, đóng kỳ thi và tạo mã kỳ mới. Giữ Candidate, QuestionBank, QuizSettings và tài khoản/phiên Admin. Lượt đang làm bị hủy; mở lại kỳ bằng cấu hình Admin khi sẵn sàng.
+- Bắt đầu thi khóa chia sẻ hàng cấu hình ngay trước khi ghi lượt. Xóa khóa độc quyền cùng hàng; lượt lấy cấu hình cũ không thể tạo lại sau khi xóa. Nộp bài chỉ cập nhật hàng có sẵn, không tạo lại hàng đã xóa. Không thêm request trình duyệt khi làm bài, không thay cơ chế chấm điểm hay xử lý nộp offline.
+- Xóa database không hoàn tác bằng rollback phiên bản Vercel. Hãy kiểm tra file xuất đã tải về trước khi xác nhận. Cache thống kê công khai có thể còn hiển thị số cũ trong khoảng thời gian cache.
+
+Kiểm tra tự động dùng database giả và React harness: bảo vệ API, sai mật khẩu không xóa, phân trang đủ và không trùng, giới hạn phản hồi, giữ cấu hình/đơn vị/thí sinh, chặn tạo lượt từ kỳ đã xóa và vị trí nút nộp. Đây không phải kiểm thử tải Vercel hay kiểm thử thiết bị thực. Không chạy xóa trên database production.

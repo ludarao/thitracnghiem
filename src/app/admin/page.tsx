@@ -58,6 +58,85 @@ export default function AdminPage() {
     }
   };
 
+  const [dataBusy, setDataBusy] = useState(false);
+  const [dataMessage, setDataMessage] = useState("");
+  const [showDelete, setShowDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const exportAllExamData = async () => {
+    setDataBusy(true);
+    setDataMessage("Đang xuất toàn bộ dữ liệu...");
+    try {
+      const backup: Record<string, any> = {
+        format: "quiz-exam-backup-v1",
+        exportedAt: new Date().toISOString(),
+      };
+      let examId = "";
+      for (const kind of ["attempts", "legacy", "candidates", "banks"]) {
+        backup[kind] = [];
+        let cursor = "";
+        do {
+          const params = new URLSearchParams({ kind, cursor, examId });
+          const page = await api("/api/admin/exam-data?" + params);
+          examId = page.examId;
+          if (page.settings) backup.settings = page.settings;
+          backup[kind].push(...page.records);
+          cursor = page.nextCursor || "";
+          setDataMessage(
+            `Đang xuất ${kind}: ${backup[kind].length} bản ghi...`,
+          );
+        } while (cursor);
+      }
+      // Check that a purge or period reset did not happen during the last page.
+      await api(
+        "/api/admin/exam-data?" +
+          new URLSearchParams({ kind: "attempts", examId }),
+      );
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(backup)], { type: "application/json" }),
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Du_Lieu_Thi_${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      setDataMessage(
+        `Đã tạo file xuất: ${backup.attempts.length} lượt thi và ${backup.legacy.length} kết quả cũ. Kiểm tra file tải về trước khi xóa.`,
+      );
+    } catch (e) {
+      setDataMessage("Xuất thất bại: " + (e as Error).message);
+    } finally {
+      setDataBusy(false);
+    }
+  };
+  const deleteAllExamData = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDataBusy(true);
+    setDeleteError("");
+    try {
+      const data = await api("/api/admin/exam-data", {
+        method: "DELETE",
+        body: JSON.stringify({
+          password: deletePassword,
+          confirmation: "DELETE_ALL_EXAM_DATA",
+        }),
+      });
+      setShowDelete(false);
+      setDeletePassword("");
+      setConfig((previous) =>
+        previous ? { ...previous, isOpen: false } : previous,
+      );
+      setDataMessage(
+        `Đã xóa ${data.deleted.attempts} lượt thi và ${data.deleted.legacy} kết quả cũ. Kỳ thi đã đóng; bật Mở kỳ thi và lưu cấu hình khi muốn tổ chức thi tiếp.`,
+      );
+      await loadHistory();
+    } catch (e) {
+      setDeleteError((e as Error).message);
+    } finally {
+      setDataBusy(false);
+    }
+  };
+
   // Cấu hình
   const [config, setConfig] = useState<ExamConfig | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -893,6 +972,97 @@ export default function AdminPage() {
                 Cập Nhật Mật Khẩu
               </button>
             </form>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-red-200 p-6 space-y-3">
+            <h3 className="text-sm font-bold text-red-900">
+              Xuất và xóa dữ liệu bài thi
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Xuất toàn bộ các kỳ thi, đáp án, hồ sơ thí sinh và phiên bản đề ra
+              JSON. Nên đóng kỳ thi trước khi xuất để tránh dữ liệu thay đổi
+              trong lúc tải. File này là bản sao dữ liệu; web chưa hỗ trợ nhập
+              lại tự động.
+            </p>
+            <button
+              disabled={dataBusy}
+              onClick={exportAllExamData}
+              className="w-full py-2.5 rounded-xl border border-brand-300 text-brand-700 font-semibold text-xs disabled:opacity-50"
+            >
+              Xuất toàn bộ dữ liệu bài thi (JSON)
+            </button>
+            <button
+              disabled={dataBusy}
+              onClick={() => {
+                setShowDelete(true);
+                setDeletePassword("");
+                setDeleteError("");
+              }}
+              className="w-full py-2.5 rounded-xl bg-red-600 text-white font-semibold text-xs disabled:opacity-50"
+            >
+              Xóa toàn bộ dữ liệu bài thi
+            </button>
+            {dataMessage && (
+              <p role="status" className="text-xs text-slate-700">
+                {dataMessage}
+              </p>
+            )}
+            {showDelete && (
+              <form
+                onSubmit={deleteAllExamData}
+                className="border-t border-red-200 pt-3 space-y-3"
+              >
+                <p className="text-xs text-red-700">
+                  Xóa vĩnh viễn tất cả lượt thi (kể cả đang làm) và kết quả của
+                  mọi kỳ. Kỳ thi sẽ đóng. Giữ hồ sơ thí sinh, danh sách đơn vị,
+                  ngân hàng câu hỏi và tài khoản Admin. Hãy kiểm tra bản xuất đã
+                  lưu trước khi xác nhận. Không thể hoàn tác bằng đổi phiên bản
+                  web.
+                </p>
+                <label
+                  className="block text-xs font-semibold"
+                  htmlFor="delete-exam-password"
+                >
+                  Nhập lại mật khẩu Admin
+                </label>
+                <input
+                  id="delete-exam-password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  maxLength={200}
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  disabled={dataBusy}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                />
+                {deleteError && (
+                  <p role="alert" className="text-xs text-red-700">
+                    {deleteError}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={dataBusy}
+                    onClick={() => {
+                      setShowDelete(false);
+                      setDeletePassword("");
+                    }}
+                    className="px-3 py-2 border rounded-xl text-xs"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    disabled={dataBusy || !deletePassword}
+                    type="submit"
+                    className="px-3 py-2 rounded-xl bg-red-600 text-white text-xs disabled:opacity-50"
+                  >
+                    {dataBusy ? "Đang xử lý..." : "Xác nhận xóa vĩnh viễn"}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
           {/* Xóa Dữ Liệu Thi Cũ */}

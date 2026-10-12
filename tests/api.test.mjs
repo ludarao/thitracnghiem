@@ -20,7 +20,7 @@ require.extensions[".ts"] = (module, filename) =>
   );
 const { NextRequest } = require("next/server");
 const { DEFAULT_CONFIG } = require("../src/lib/storage.ts");
-let config, candidates, attempts, account, sessions, sequence;
+let config, candidates, attempts, account, sessions, sequence, legacy;
 function reset() {
   config = {
     id: "main",
@@ -46,6 +46,7 @@ function reset() {
       },
     ],
   };
+  legacy = new Map();
   candidates = new Map();
   attempts = new Map();
   sessions = new Map();
@@ -59,6 +60,7 @@ const db = {
     update: async ({ data }) => (config = { ...config, ...data }),
   },
   candidate: {
+    findMany: async (query) => exportPage([...candidates.values()], query),
     upsert: async ({ where, create }) => {
       if (!candidates.has(where.code))
         candidates.set(where.code, {
@@ -69,6 +71,11 @@ const db = {
     },
   },
   attempt: {
+    deleteMany: async () => {
+      const count = attempts.size;
+      attempts.clear();
+      return { count };
+    },
     create: async ({ data }) => {
       const a = {
         id: "attempt-" + ++sequence,
@@ -96,34 +103,37 @@ const db = {
       Object.assign(a, data, { version: a.version + 1 });
       return a;
     },
-    findMany: async ({ where, take, select }) =>
-      [...attempts.values()]
-        .filter(
-          (a) =>
-            (!where.id || where.id.in.includes(a.id)) &&
-            (!where.examId || a.examId === where.examId) &&
-            (!where.OR ||
-              where.OR.some((c) =>
-                c.submittedAt?.lt
-                  ? a.submittedAt < c.submittedAt.lt
-                  : a.submittedAt?.getTime() === c.submittedAt?.getTime() &&
-                    a.id < c.id.lt,
-              )) &&
-            (!where.submittedAt ||
-              (where.submittedAt === null
-                ? a.submittedAt === null
-                : a.submittedAt !== null)),
-        )
-        .sort(
-          (a, b) =>
-            (b.submittedAt?.getTime() || 0) - (a.submittedAt?.getTime() || 0),
-        )
-        .slice(0, take)
-        .map((a) =>
-          select
-            ? Object.fromEntries(Object.keys(select).map((k) => [k, a[k]]))
-            : a,
-        ),
+    findMany: async ({ where, take, select, orderBy }) =>
+      orderBy?.id === "asc"
+        ? exportPage([...attempts.values()], { where, take })
+        : [...attempts.values()]
+            .filter(
+              (a) =>
+                (!where.id || where.id.in.includes(a.id)) &&
+                (!where.examId || a.examId === where.examId) &&
+                (!where.OR ||
+                  where.OR.some((c) =>
+                    c.submittedAt?.lt
+                      ? a.submittedAt < c.submittedAt.lt
+                      : a.submittedAt?.getTime() === c.submittedAt?.getTime() &&
+                        a.id < c.id.lt,
+                  )) &&
+                (!where.submittedAt ||
+                  (where.submittedAt === null
+                    ? a.submittedAt === null
+                    : a.submittedAt !== null)),
+            )
+            .sort(
+              (a, b) =>
+                (b.submittedAt?.getTime() || 0) -
+                (a.submittedAt?.getTime() || 0),
+            )
+            .slice(0, take)
+            .map((a) =>
+              select
+                ? Object.fromEntries(Object.keys(select).map((k) => [k, a[k]]))
+                : a,
+            ),
   },
   adminAccount: {
     findUnique: async () => account,
@@ -173,7 +183,23 @@ db.questionBank = {
   upsert: async ({ create }) => create,
   findUnique: async () => null,
 };
+db.examResult = {
+  findMany: async (query) => exportPage([...legacy.values()], query),
+  deleteMany: async () => {
+    const count = legacy.size;
+    legacy.clear();
+    return { count };
+  },
+};
+db.questionBank.findMany = async () => [];
+function exportPage(records, { where = {}, take }) {
+  return records
+    .filter((r) => !where.id?.gt || r.id > where.id.gt)
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .slice(0, take);
+}
 db.$queryRaw = async (strings, ...values) => {
+  if (/FOR (SHARE|UPDATE)/.test(strings.join(" "))) return [config];
   assert.match(
     strings.join(" "),
     /"summary"->>'score'\)\:\:numeric DESC NULLS LAST/,
@@ -211,6 +237,7 @@ const exam = require("../src/app/api/exam/route.ts");
 const admin = require("../src/app/api/admin/route.ts");
 const settings = require("../src/app/api/config/route.ts");
 const results = require("../src/app/api/results/route.ts");
+const examData = require("../src/app/api/admin/exam-data/route.ts");
 const userInfo = {
   serviceNumber: "649-605",
   unit: DEFAULT_CONFIG.units[0].name,
@@ -804,4 +831,201 @@ test("API 1.3: lưu/tắt giám sát và chống copy ở Admin, không sửa c�
     ),
   );
   assert.equal(invalid.status, 400);
+});
+
+test("all-exam export is admin-only and paginates submitted and pending attempts across periods", async () => {
+  reset();
+  assert.equal(
+    (
+      await expectedError(() =>
+        examData.GET(req("/api/admin/exam-data?kind=attempts")),
+      )
+    ).status,
+    401,
+  );
+  const headers = await login();
+  for (let i = 0; i < 205; i++) {
+    const id = "export-" + String(i).padStart(4, "0");
+    attempts.set(id, {
+      id,
+      examId: i % 2 ? "old-period" : "exam-1",
+      submittedAt: i % 3 ? new Date() : null,
+      answers: { 1: "A" },
+    });
+  }
+  let cursor = "",
+    all = [],
+    pages = 0;
+  do {
+    const response = await examData.GET(
+      req(
+        "/api/admin/exam-data?" +
+          new URLSearchParams({ kind: "attempts", cursor }),
+        "GET",
+        null,
+        headers,
+      ),
+    );
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("cache-control"), /no-store/);
+    const data = await response.json();
+    all.push(...data.records);
+    cursor = data.nextCursor || "";
+    pages++;
+    assert.ok(data.records.length <= 100);
+  } while (cursor);
+  assert.equal(pages, 3);
+  assert.equal(all.length, 205);
+  assert.equal(new Set(all.map((r) => r.id)).size, 205);
+  assert.ok(all.some((r) => r.submittedAt === null));
+  assert.ok(all.some((r) => r.examId === "old-period"));
+  legacy.set("legacy-1", { id: "legacy-1", answersJson: "[]" });
+  const old = await examData.GET(
+    req("/api/admin/exam-data?kind=legacy", "GET", null, headers),
+  );
+  assert.equal((await old.json()).records.length, 1);
+  assert.equal(
+    (
+      await expectedError(() =>
+        examData.GET(
+          req(
+            "/api/admin/exam-data?kind=attempts&examId=changed",
+            "GET",
+            null,
+            headers,
+          ),
+        ),
+      )
+    ).status,
+    409,
+  );
+});
+
+test("purge requires a logged-in session and correct stored password; keeps config, banks and candidates", async () => {
+  reset();
+  const started = await start();
+  legacy.set("legacy-1", { id: "legacy-1" });
+  const body = {
+    password: "test-admin-password-2026",
+    confirmation: "DELETE_ALL_EXAM_DATA",
+  };
+  assert.equal(
+    (
+      await expectedError(() =>
+        examData.DELETE(req("/api/admin/exam-data", "DELETE", body)),
+      )
+    ).status,
+    401,
+  );
+  const headers = await login();
+  assert.equal(
+    (
+      await expectedError(() =>
+        examData.DELETE(
+          req(
+            "/api/admin/exam-data",
+            "DELETE",
+            { ...body, password: "wrong" },
+            headers,
+          ),
+        ),
+      )
+    ).status,
+    401,
+  );
+  assert.equal(
+    (
+      await expectedError(() =>
+        examData.DELETE(
+          req(
+            "/api/admin/exam-data",
+            "DELETE",
+            { ...body, confirmation: "" },
+            headers,
+          ),
+        ),
+      )
+    ).status,
+    400,
+  );
+  assert.equal(attempts.size, 1);
+  assert.equal(legacy.size, 1);
+  const before = structuredClone(config);
+  const response = await examData.DELETE(
+    req("/api/admin/exam-data", "DELETE", body, headers),
+  );
+  assert.equal(response.status, 200);
+  assert.deepEqual((await response.json()).deleted, { attempts: 1, legacy: 1 });
+  assert.equal(attempts.size, 0);
+  assert.equal(legacy.size, 0);
+  assert.equal(candidates.size, 1);
+  assert.equal(config.config.isOpen, false);
+  assert.notEqual(config.activeExamId, before.activeExamId);
+  assert.deepEqual(config.questions, before.questions);
+  assert.deepEqual(config.config, { ...before.config, isOpen: false });
+  assert.ok(account.passwordHash);
+  assert.equal(
+    (
+      await expectedError(() =>
+        exam.GET(req("/api/exam", "GET", null, bearer(started.token))),
+      )
+    ).status,
+    400,
+  );
+});
+
+test("start fetched before purge cannot insert into the erased period", async () => {
+  reset();
+  const original = db.candidate.upsert;
+  db.candidate.upsert = async (args) => {
+    const candidate = await original(args);
+    config = {
+      ...config,
+      activeExamId: "purged-period",
+      config: { ...config.config, isOpen: false },
+    };
+    return candidate;
+  };
+  try {
+    const response = await expectedError(() =>
+      exam.POST(req("/api/exam", "POST", { userInfo })),
+    );
+    assert.equal(response.status, 400);
+    assert.equal(attempts.size, 0);
+  } finally {
+    db.candidate.upsert = original;
+  }
+});
+
+test("export stays bounded when stored attempt details are large", async () => {
+  reset();
+  const headers = await login();
+  for (let i = 0; i < 4; i++)
+    attempts.set("large-" + i, {
+      id: "large-" + i,
+      result: "x".repeat(1100000),
+    });
+  const first = await examData.GET(
+    req("/api/admin/exam-data?kind=attempts", "GET", null, headers),
+  );
+  assert.equal(first.status, 200);
+  const data = await first.json();
+  assert.equal(data.records.length, 2);
+  assert.equal(data.nextCursor, "large-1");
+  assert.ok(Buffer.byteLength(JSON.stringify(data)) < 4 * 1024 * 1024);
+  attempts.set("oversized", {
+    id: "oversized",
+    result: "x".repeat(4 * 1024 * 1024),
+  });
+  const oversized = await expectedError(() =>
+    examData.GET(
+      req(
+        "/api/admin/exam-data?kind=attempts&cursor=large-3",
+        "GET",
+        null,
+        headers,
+      ),
+    ),
+  );
+  assert.equal(oversized.status, 413);
 });

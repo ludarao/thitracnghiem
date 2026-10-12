@@ -60,24 +60,39 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const bankId = await saveBank(s.questions as unknown as Question[]);
     const { units, ...attemptConfig } = cfg;
-    const attempt = await prisma.attempt.create({
-      data: {
-        token: digest(raw),
-        candidateId: candidate.id,
-        examId: s.activeExamId,
-        info: JSON.parse(JSON.stringify(snapshot)),
-        config: JSON.parse(JSON.stringify(attemptConfig)),
-        bankId,
-        questions: JSON.parse(
-          JSON.stringify(
-            questionRefs(s.questions as unknown as Question[], cfg),
+    const attempt = await prisma.$transaction(async (tx) => {
+      // Serialize the final insertion against an Admin purge/period change.
+      const [current] = await tx.$queryRaw<
+        { activeExamId: string; config: ExamConfig }[]
+      >`
+        SELECT "activeExamId", "config" FROM "QuizSettings" WHERE "id" = 'main' FOR SHARE`;
+      if (
+        !current ||
+        current.activeExamId !== s.activeExamId ||
+        !current.config.isOpen
+      )
+        throw new Error(
+          "Kỳ thi đã đóng hoặc thay đổi. Vui lòng tải lại trang.",
+        );
+      return tx.attempt.create({
+        data: {
+          token: digest(raw),
+          candidateId: candidate.id,
+          examId: s.activeExamId,
+          info: JSON.parse(JSON.stringify(snapshot)),
+          config: JSON.parse(JSON.stringify(attemptConfig)),
+          bankId,
+          questions: JSON.parse(
+            JSON.stringify(
+              questionRefs(s.questions as unknown as Question[], cfg),
+            ),
           ),
-        ),
-        answers: {},
-        startTime: now,
-        questionStartedAt: now,
-        deadline: new Date(now.getTime() + cfg.totalTimeMinutes * 60000),
-      },
+          answers: {},
+          startTime: now,
+          questionStartedAt: now,
+          deadline: new Date(now.getTime() + cfg.totalTimeMinutes * 60000),
+        },
+      });
     });
     // Return the complete public session in the start response: no follow-up GET.
     const prepared = await hydrateQuestions(attempt);

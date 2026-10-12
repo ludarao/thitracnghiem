@@ -962,24 +962,6 @@ export default function ExamPage() {
                 <Clock className="w-4 h-4" />
                 <span>{formatTime(timeRemainingTotal)}</span>
               </div>
-
-              {/* Nút nộp bài */}
-              <button
-                disabled={busy}
-                onClick={() => {
-                  if (
-                    confirm(
-                      `Bạn đã trả lời ${answeredCount}/${totalQ} câu hỏi. Bạn có chắc chắn muốn nộp bài ngay bây giờ?`,
-                    )
-                  ) {
-                    handleSubmitExam();
-                  }
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all flex items-center gap-1.5"
-              >
-                <Send className="w-4 h-4" />
-                <span>Nộp Bài</span>
-              </button>
             </div>
           </div>
 
@@ -1068,14 +1050,32 @@ export default function ExamPage() {
               Đã làm {answeredCount}/{totalQ} câu
             </span>
 
-            <button
-              onClick={() => navigate(Math.min(totalQ - 1, currentIndex + 1))}
-              disabled={busy || currentIndex === totalQ - 1}
-              className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
-            >
-              <span>Câu sau</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            {currentIndex === totalQ - 1 &&
+            examQuestions.every((q) => Boolean(selectedAnswers[q.id])) ? (
+              <button
+                disabled={busy}
+                onClick={() => {
+                  if (
+                    canInteract() &&
+                    confirm("Bạn đã trả lời đủ câu hỏi. Xác nhận nộp bài?")
+                  )
+                    handleSubmitExam();
+                }}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-40"
+              >
+                <Send className="w-4 h-4" />
+                <span>Nộp Bài</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate(Math.min(totalQ - 1, currentIndex + 1))}
+                disabled={busy || currentIndex === totalQ - 1}
+                className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+              >
+                <span>Câu sau</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
