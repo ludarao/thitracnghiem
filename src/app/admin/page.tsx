@@ -1,8 +1,9 @@
 "use client";
 
 import Verification from "../../components/Verification";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { api } from "../../lib/client";
+import { collectSubmittedHistory } from "../../lib/history-export";
 import {
   exportResultsToExcel,
   parseExcelQuestions,
@@ -41,6 +42,29 @@ export default function AdminPage() {
   const [historyCursor, setHistoryCursor] = useState<string[]>([""]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [historyBusy, setHistoryBusy] = useState(false);
+  const [excelBusy, setExcelBusy] = useState(false);
+  const [excelMessage, setExcelMessage] = useState("");
+  const excelPending = useRef(false);
+  const exportAllSubmittedExcel = async () => {
+    if (excelPending.current) return;
+    excelPending.current = true;
+    setExcelBusy(true);
+    setExcelMessage("Đang tải toàn bộ lượt nộp bài...");
+    try {
+      const rows = await collectSubmittedHistory<any>(api, (count) =>
+        setExcelMessage(`Đã tải ${count} lượt nộp bài...`),
+      );
+      exportResultsToExcel(rows, [], "Lich_Su_Thi_Toan_Bo.xlsx");
+      setExcelMessage(
+        `Đã xuất ${rows.length} lượt nộp bài ở tất cả các kỳ thi.`,
+      );
+    } catch (e) {
+      setExcelMessage("Xuất Excel thất bại: " + (e as Error).message);
+    } finally {
+      excelPending.current = false;
+      setExcelBusy(false);
+    }
+  };
   const loadHistory = async (cursor = "", pages = [""]) => {
     setHistoryBusy(true);
     try {
@@ -462,18 +486,24 @@ export default function AdminPage() {
               Làm mới
             </button>
             <button
-              onClick={() =>
-                exportResultsToExcel(history, [], "Lich_Su_Thi.xlsx")
-              }
-              className="text-brand-700"
+              onClick={() => void exportAllSubmittedExcel()}
+              disabled={excelBusy || dataBusy}
+              className="text-brand-700 disabled:opacity-50"
             >
-              Xuất Excel
+              {excelBusy ? "Đang xuất Excel..." : "Xuất Excel toàn bộ"}
             </button>
           </div>
         </div>
         <p className="text-xs text-slate-500">
-          Mỗi trang 50 lượt nộp. Xuất Excel chỉ xuất trang đang xem.
+          Mỗi trang 50 lượt nộp. Xuất Excel lấy toàn bộ lượt nộp bài ở tất cả
+          các kỳ thi, kể cả các lần thi lại. Nên đóng kỳ thi trước khi xuất để
+          danh sách không thay đổi trong lúc tải.
         </p>
+        {excelMessage && (
+          <p role="status" className="text-sm text-brand-700">
+            {excelMessage}
+          </p>
+        )}
         <div className="flex gap-4">
           <button
             disabled={historyBusy || historyCursor.length === 1}
@@ -989,14 +1019,14 @@ export default function AdminPage() {
               lại tự động.
             </p>
             <button
-              disabled={dataBusy}
+              disabled={dataBusy || excelBusy}
               onClick={exportAllExamData}
               className="w-full py-2.5 rounded-xl border border-brand-300 text-brand-700 font-semibold text-xs disabled:opacity-50"
             >
               Xuất toàn bộ dữ liệu bài thi (JSON)
             </button>
             <button
-              disabled={dataBusy}
+              disabled={dataBusy || excelBusy}
               onClick={() => {
                 setShowDelete(true);
                 setDeletePassword("");
@@ -1037,7 +1067,7 @@ export default function AdminPage() {
                   maxLength={200}
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
-                  disabled={dataBusy}
+                  disabled={dataBusy || excelBusy}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300"
                 />
                 {deleteError && (
@@ -1048,7 +1078,7 @@ export default function AdminPage() {
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    disabled={dataBusy}
+                    disabled={dataBusy || excelBusy}
                     onClick={() => {
                       setShowDelete(false);
                       setDeletePassword("");
