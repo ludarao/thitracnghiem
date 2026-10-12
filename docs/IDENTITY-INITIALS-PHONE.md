@@ -17,7 +17,7 @@ Cùng viết tắt và cùng điện thoại đã chuẩn hóa dùng cùng Candi
 - Candidate.info: nameInitials, phone, candidateCode, unit của lần tạo hồ sơ.
 - Attempt.info và summary.userInfo: snapshot đúng thông tin của từng lượt thi, gồm đơn vị lần đó. Không lưu thêm họ tên đầy đủ, cấp bậc, chức vụ hoặc số hiệu từ request đăng ký mới.
 - Admin/lịch sử/Excel: thêm cột viết tắt và số điện thoại; mã cũ vẫn hiển thị bằng candidateCode/serviceNumber khi có. JSON export tự chứa các trường mới vì xuất toàn bộ bản ghi.
-- API công khai vẫn chỉ trả đơn vị của thí sinh, không công khai số điện thoại/viết tắt/mã ghép.
+- Dashboard/API công khai chỉ hiển thị mã đã che bốn số cuối, điểm, thời gian và đơn vị; không trả số điện thoại đầy đủ, trường viết tắt riêng hoặc mã ghép gốc.
 
 ## Triển khai và dữ liệu cũ
 

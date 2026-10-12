@@ -72,13 +72,14 @@ export function advanceAttempt(
   return next;
 }
 
-/** Select the highest submitted score per candidate; equal scores use the newest submission. */
+/** Select highest score, then shortest duration; remaining ties use newest submission. */
 export function bestAttempts<
   T extends {
     candidateId: string;
     submittedAt: Date | null;
     id: string;
     score: number;
+    totalDurationSeconds?: number;
   },
 >(attempts: T[]): T[] {
   const seen = new Set<string>();
@@ -87,6 +88,8 @@ export function bestAttempts<
     .sort(
       (a, b) =>
         b.score - a.score ||
+        (a.totalDurationSeconds ?? Infinity) -
+          (b.totalDurationSeconds ?? Infinity) ||
         b.submittedAt!.getTime() - a.submittedAt!.getTime() ||
         b.id.localeCompare(a.id),
     )

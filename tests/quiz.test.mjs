@@ -196,3 +196,30 @@ test("Số hiệu giữ nguyên dấu gạch ngang và số 0 đầu", () => {
   ])
     assert.throws(() => normalizeServiceNumber(value));
 });
+
+test("Best attempt uses fastest duration among equal highest scores", () => {
+  const rows = [
+    {
+      id: "slow",
+      candidateId: "A",
+      score: 10,
+      totalDurationSeconds: 90,
+      submittedAt: new Date("2026-10-12T11:00:00Z"),
+    },
+    {
+      id: "fast",
+      candidateId: "A",
+      score: 10,
+      totalDurationSeconds: 20,
+      submittedAt: new Date("2026-10-12T10:00:00Z"),
+    },
+    {
+      id: "low",
+      candidateId: "A",
+      score: 8,
+      totalDurationSeconds: 1,
+      submittedAt: new Date("2026-10-12T12:00:00Z"),
+    },
+  ];
+  assert.equal(bestAttempts(rows)[0].id, "fast");
+});

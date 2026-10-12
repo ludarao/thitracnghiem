@@ -929,7 +929,7 @@ export default function ExamPage() {
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
                   * Bạn được ghi nhận đã dự thi tại đơn vị của lượt có điểm cao
-                  nhất (bằng điểm lấy lượt nộp mới hơn).
+                  nhất (bằng điểm lấy lượt làm nhanh nhất).
                 </p>
               </div>
 

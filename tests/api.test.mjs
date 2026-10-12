@@ -217,6 +217,7 @@ db.$queryRaw = async (strings, ...values) => {
     .sort(
       (a, b) =>
         b.summary.score - a.summary.score ||
+        a.summary.totalDurationSeconds - b.summary.totalDurationSeconds ||
         b.submittedAt - a.submittedAt ||
         b.id.localeCompare(a.id),
     );
@@ -602,7 +603,7 @@ test("API từ chối batch sai không ghi kết quả", async () => {
   assert.equal(attempts.get(id).version, 0);
 });
 
-test("API 5001 người: response 100 người/trang, thống kê và tập thể tính toàn bộ", async () => {
+test("API 5001 người: response 20 người/trang, thống kê và tập thể tính toàn bộ", async () => {
   reset();
   const { token, id } = await start();
   await action(token, { action: "submit", answers: { 1: "A" } });
@@ -617,7 +618,7 @@ test("API 5001 người: response 100 người/trang, thống kê và tập th�
     attempts.set(row.id, row);
   }
   const first = await (await results.GET(req("/api/results"))).json();
-  assert.equal(first.results.length, 100);
+  assert.equal(first.results.length, 20);
   assert.equal(first.totalParticipants, 5001);
   assert.equal(first.totalAttempts, 5001);
   const counts = await (await results.GET(req("/api/results?counts=1"))).json();
@@ -625,7 +626,7 @@ test("API 5001 người: response 100 người/trang, thống kê và tập th�
     counts.units.find((r) => r.unit === userInfo.unit).participantCount,
     5001,
   );
-  const last = await (await results.GET(req("/api/results?page=51"))).json();
+  const last = await (await results.GET(req("/api/results?page=251"))).json();
   assert.equal(last.results.length, 1);
   assert.equal(last.hasMore, false);
 });
@@ -1239,5 +1240,156 @@ test("forged signed admin logout cookies cannot cause database deletes", async (
     assert.equal(deletes, 0);
   } finally {
     db.adminSession.deleteMany = original;
+  }
+});
+
+test("dashboard ranks highest score then fastest attempt, masks phones, paginates 20 people and 10 units", async () => {
+  reset();
+  config.config.units = Array.from({ length: 26 }, (_, i) => ({
+    name: "Unit" + String(i).padStart(2, "0"),
+    targetCount: 0,
+  }));
+  const initial = await start({ ...userInfo, unit: "Unit00" });
+  await action(initial.token, { action: "submit", answers: {} });
+  const template = attempts.get(initial.id);
+  attempts.clear();
+  const baseTime = Date.now();
+  for (let i = 0; i < 45; i++) {
+    const id = "ranked-" + String(i).padStart(2, "0");
+    const phone = String(985728123 + i).padStart(10, "0");
+    const info = {
+      nameInitials: "ptb",
+      phone,
+      candidateCode: "ptb" + phone,
+      unit: "Unit" + String(i % 23).padStart(2, "0"),
+    };
+    attempts.set(id, {
+      ...template,
+      id,
+      candidateId: "person-" + i,
+      info,
+      submittedAt: new Date(baseTime),
+      summary: {
+        ...template.summary,
+        id,
+        userInfo: info,
+        score: i < 2 ? 10 : i === 2 ? 9 : 8,
+        totalDurationSeconds: i === 0 ? 90 : i === 1 ? 45 : i === 2 ? 1 : i,
+      },
+    });
+  }
+  const slow = attempts.get("ranked-00");
+  const info = { ...slow.info, unit: "Unit22" };
+  attempts.set("winner-fast-0", {
+    ...slow,
+    id: "winner-fast-0",
+    info,
+    submittedAt: new Date(baseTime - 10000),
+    summary: {
+      ...slow.summary,
+      id: "winner-fast-0",
+      userInfo: info,
+      totalDurationSeconds: 20,
+    },
+  });
+  attempts.set("lower-score-0", {
+    ...slow,
+    id: "lower-score-0",
+    submittedAt: new Date(baseTime + 10000),
+    summary: {
+      ...slow.summary,
+      id: "lower-score-0",
+      score: 1,
+      totalDurationSeconds: 2,
+    },
+  });
+  const get = async (page, unitsPage) =>
+    (
+      await results.GET(
+        req(`/api/results?dashboard=1&page=${page}&unitsPage=${unitsPage}`),
+      )
+    ).json();
+  const first = await get(1, 1),
+    second = await get(2, 2),
+    third = await get(3, 3);
+  assert.deepEqual(
+    first.results.slice(0, 3).map((r) => r.id),
+    ["winner-fast-0", "ranked-01", "ranked-02"],
+  );
+  assert.equal(first.results[0].maskedCandidateCode, "ptb098572****");
+  assert.equal(first.results[0].userInfo.unit, "Unit22");
+  assert.equal(first.totalParticipants, 45);
+  assert.equal(first.totalAttempts, 47);
+  assert.equal(first.totalPages, 3);
+  assert.deepEqual(
+    [first.results.length, second.results.length, third.results.length],
+    [20, 20, 5],
+  );
+  assert.equal(
+    new Set(
+      [...first.results, ...second.results, ...third.results].map((r) => r.id),
+    ).size,
+    45,
+  );
+  assert.deepEqual(
+    [first.units.length, second.units.length, third.units.length],
+    [10, 10, 6],
+  );
+  const units = [...first.units, ...second.units, ...third.units];
+  assert.equal(new Set(units.map((u) => u.unit)).size, 26);
+  assert.equal(
+    units.reduce((n, u) => n + u.participantCount, 0),
+    45,
+  );
+  assert.ok(
+    units.every(
+      (u, i) => i === 0 || units[i - 1].participantCount >= u.participantCount,
+    ),
+  );
+  assert.equal(units.find((u) => u.unit === "Unit00").participantCount, 1);
+  assert.equal(units.find((u) => u.unit === "Unit22").participantCount, 2);
+  for (const data of [first, second, third]) {
+    assert.ok(!JSON.stringify(data).includes("0985728123"));
+    for (const row of data.results) {
+      assert.deepEqual(Object.keys(row.userInfo), ["unit"]);
+      assert.ok(!("answers" in row));
+      assert.ok(!("localMonitoring" in row));
+      assert.ok(!("phone" in row));
+      assert.ok(!("candidateCode" in row));
+    }
+  }
+  const overflow = await get(1000, 1000);
+  assert.equal(overflow.page, 3);
+  assert.equal(overflow.unitsPage, 3);
+  attempts.clear();
+  const resetPage = await get(3, 3);
+  assert.equal(resetPage.page, 1);
+  assert.equal(resetPage.results.length, 0);
+});
+test("dashboard invalid pages reject before DB access", async () => {
+  reset();
+  const original = db.$queryRaw;
+  let reads = 0;
+  db.$queryRaw = async (...args) => {
+    reads++;
+    return original(...args);
+  };
+  try {
+    for (const params of [
+      "page=0",
+      "page=-1",
+      "page=NaN",
+      "page=1.2",
+      "unitsPage=-1",
+      "unitsPage=100001",
+    ]) {
+      const response = await expectedError(() =>
+        results.GET(req("/api/results?dashboard=1&" + params)),
+      );
+      assert.equal(response.status, 400);
+    }
+    assert.equal(reads, 0);
+  } finally {
+    db.$queryRaw = original;
   }
 });

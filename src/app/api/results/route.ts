@@ -1,3 +1,5 @@
+import { RequestError } from "../../../lib/request-security";
+import { publicCandidateCode } from "../../../lib/public-candidate-code";
 import { NextRequest, NextResponse } from "next/server";
 import { unstable_cache } from "next/cache";
 import { prisma } from "../../../lib/prisma";
@@ -16,7 +18,7 @@ const leaderboard = unstable_cache(
       { summary: ExamResult; total: bigint }[]
     >`
  WITH submitted AS (SELECT "candidateId", "submittedAt", "id", "summary" FROM "Attempt" WHERE "examId"=${s.activeExamId} AND "submittedAt" IS NOT NULL)
- SELECT DISTINCT ON ("candidateId") "summary", (SELECT COUNT(*) FROM submitted) AS total FROM submitted ORDER BY "candidateId", ("summary"->>'score')::numeric DESC NULLS LAST, "submittedAt" DESC,"id" DESC`;
+ SELECT DISTINCT ON ("candidateId") "summary", (SELECT COUNT(*) FROM submitted) AS total FROM submitted ORDER BY "candidateId", ("summary"->>'score')::numeric DESC NULLS LAST, ("summary"->>'totalDurationSeconds')::numeric ASC NULLS LAST,"submittedAt" DESC,"id" DESC`;
     const minimal = rows.map(({ summary: r }) => ({
       id: r.id,
       score: r.score,
@@ -38,7 +40,7 @@ const leaderboard = unstable_cache(
       ids: minimal.map((r) => r.id),
     };
   },
-  ["public-leaderboard-best-v3"],
+  ["public-leaderboard-fastest-v4"],
   { revalidate: 60, tags: ["quiz-leaderboard"] },
 );
 const participationCounts = unstable_cache(
@@ -49,7 +51,7 @@ const participationCounts = unstable_cache(
         select: { activeExamId: true, config: true },
       })) ?? (await settings());
     const rows = await prisma.$queryRaw<{ unit: string; count: bigint }[]>`
- WITH best AS (SELECT DISTINCT ON ("candidateId") "info" FROM "Attempt" WHERE "examId"=${s.activeExamId} AND "submittedAt" IS NOT NULL ORDER BY "candidateId",("summary"->>'score')::numeric DESC NULLS LAST,"submittedAt" DESC,"id" DESC)
+ WITH best AS (SELECT DISTINCT ON ("candidateId") "info" FROM "Attempt" WHERE "examId"=${s.activeExamId} AND "submittedAt" IS NOT NULL ORDER BY "candidateId",("summary"->>'score')::numeric DESC NULLS LAST,("summary"->>'totalDurationSeconds')::numeric ASC NULLS LAST,"submittedAt" DESC,"id" DESC)
  SELECT "info"->>'unit' AS unit, COUNT(*) AS count FROM best GROUP BY "info"->>'unit'`;
     const counts = new Map(rows.map((r) => [r.unit, Number(r.count)]));
     const names = new Set([
@@ -58,26 +60,131 @@ const participationCounts = unstable_cache(
     ]);
     return {
       asOf: new Date().toISOString(),
-      units: [...names].map((unit) => ({
-        unit,
-        participantCount: counts.get(unit) || 0,
-      })),
+      units: [...names]
+        .map((unit) => ({ unit, participantCount: counts.get(unit) || 0 }))
+        .sort(
+          (a, b) =>
+            b.participantCount - a.participantCount ||
+            a.unit.localeCompare(b.unit, "vi"),
+        ),
     };
   },
-  ["quiz-participation-counts-best-v2"],
+  ["quiz-participation-counts-fastest-v3"],
   { revalidate: 60, tags: ["quiz-leaderboard"] },
 );
+function pageNumber(value: string | null) {
+  const page = Number(value || 1);
+  if (!Number.isInteger(page) || page < 1 || page > 100000)
+    throw new RequestError("Trang không hợp lệ.", 400);
+  return page;
+}
+const publicHeaders = {
+  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60",
+};
+function unitPage(
+  snapshot: Awaited<ReturnType<typeof participationCounts>>,
+  page: number,
+) {
+  const pageSize = 10;
+  return {
+    asOf: snapshot.asOf,
+    units: snapshot.units.slice((page - 1) * pageSize, page * pageSize),
+    page,
+    pageSize,
+    totalUnits: snapshot.units.length,
+    totalPages: Math.max(1, Math.ceil(snapshot.units.length / pageSize)),
+    hasMore: page * pageSize < snapshot.units.length,
+  };
+}
+async function candidatePage(
+  snapshot: Awaited<ReturnType<typeof leaderboard>>,
+  page: number,
+) {
+  const pageSize = 20;
+  const ids = snapshot.ids.slice((page - 1) * pageSize, page * pageSize);
+  const results = !ids.length
+    ? []
+    : await unstable_cache(
+        async () => {
+          const records = await prisma.attempt.findMany({
+            where: { id: { in: ids } },
+            select: { summary: true },
+          });
+          const byId = new Map(
+            records.map((a) => {
+              const r = a.summary as unknown as ExamResult;
+              // Explicit public fields; never send full identity, answers or monitoring.
+              return [
+                r.id,
+                {
+                  id: r.id,
+                  score: r.score,
+                  totalDurationSeconds: r.totalDurationSeconds,
+                  isPassed: r.isPassed,
+                  maskedCandidateCode: publicCandidateCode(r.userInfo),
+                  userInfo: { unit: r.userInfo.unit },
+                },
+              ];
+            }),
+          );
+          return ids.map((id) => byId.get(id)).filter(Boolean);
+        },
+        ["public-results-fastest-masked-v4", snapshot.asOf, String(page)],
+        { revalidate: 60, tags: ["quiz-leaderboard"] },
+      )();
+  const { ids: unused, ...stats } = snapshot;
+  return {
+    ...stats,
+    results,
+    page,
+    pageSize,
+    totalPages: Math.max(1, Math.ceil(snapshot.totalParticipants / pageSize)),
+    hasMore: page * pageSize < snapshot.totalParticipants,
+  };
+}
 export async function GET(req: NextRequest) {
   try {
-    if (req.nextUrl.searchParams.get("counts") === "1")
-      return NextResponse.json(
-        { success: true, ...(await participationCounts()) },
-        {
-          headers: {
-            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60",
-          },
-        },
+    if (req.nextUrl.searchParams.get("dashboard") === "1") {
+      const requested = pageNumber(req.nextUrl.searchParams.get("page"));
+      const requestedUnits = pageNumber(
+        req.nextUrl.searchParams.get("unitsPage"),
       );
+      const [snapshot, counts] = await Promise.all([
+        leaderboard(),
+        participationCounts(),
+      ]);
+      const page = Math.min(
+        requested,
+        Math.max(1, Math.ceil(snapshot.totalParticipants / 20)),
+      );
+      const unitsPage = Math.min(
+        requestedUnits,
+        Math.max(1, Math.ceil(counts.units.length / 10)),
+      );
+      const people = await candidatePage(snapshot, page);
+      const units = unitPage(counts, unitsPage);
+      const { config: unusedConfig, ...publicPeople } = people;
+      return NextResponse.json(
+        {
+          success: true,
+          ...publicPeople,
+          units: units.units,
+          unitsPage,
+          unitsPageSize: units.pageSize,
+          totalUnits: units.totalUnits,
+          unitsTotalPages: units.totalPages,
+          countsAsOf: units.asOf,
+        },
+        { headers: publicHeaders },
+      );
+    }
+    if (req.nextUrl.searchParams.get("counts") === "1") {
+      const page = pageNumber(req.nextUrl.searchParams.get("page"));
+      return NextResponse.json(
+        { success: true, ...unitPage(await participationCounts(), page) },
+        { headers: publicHeaders },
+      );
+    }
     if (req.nextUrl.searchParams.get("history") === "1") {
       if (!(await isAdmin(req)))
         return NextResponse.json(
@@ -130,75 +237,10 @@ export async function GET(req: NextRequest) {
         { headers: { "Cache-Control": "no-store" } },
       );
     }
-    const snapshot = await leaderboard();
-    const requested = Number(req.nextUrl.searchParams.get("page") || 1);
-    if (!Number.isInteger(requested) || requested < 1 || requested > 100000)
-      throw new Error("Trang không hợp lệ.");
-    const pageSize = 100;
-    const ids = snapshot.ids.slice(
-      (requested - 1) * pageSize,
-      requested * pageSize,
-    );
-    if (!ids.length) {
-      const { ids: unused, ...stats } = snapshot;
-      return NextResponse.json(
-        {
-          success: true,
-          ...stats,
-          results: [],
-          page: requested,
-          pageSize,
-          hasMore: false,
-        },
-        {
-          headers: {
-            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60",
-          },
-        },
-      );
-    }
-    const results = await unstable_cache(
-      async () => {
-        const records = await prisma.attempt.findMany({
-          where: { id: { in: ids } },
-          select: { summary: true },
-        });
-        const byId = new Map(
-          records.map((a) => {
-            const r = a.summary as unknown as ExamResult;
-            const { localMonitoring: privateMonitoring, ...publicResult } = r;
-            return [
-              r.id,
-              {
-                ...publicResult,
-                answers: [],
-                userInfo: {
-                  unit: r.userInfo.unit,
-                },
-              },
-            ];
-          }),
-        );
-        return ids.map((id) => byId.get(id)).filter(Boolean);
-      },
-      ["public-results-page-best-v3", snapshot.asOf, String(requested)],
-      { revalidate: 60, tags: ["quiz-leaderboard"] },
-    )();
-    const { ids: unused, ...stats } = snapshot;
+    const page = pageNumber(req.nextUrl.searchParams.get("page"));
     return NextResponse.json(
-      {
-        success: true,
-        ...stats,
-        results,
-        page: requested,
-        pageSize,
-        hasMore: requested * pageSize < snapshot.totalParticipants,
-      },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60",
-        },
-      },
+      { success: true, ...(await candidatePage(await leaderboard(), page)) },
+      { headers: publicHeaders },
     );
   } catch (e) {
     return failure(e);
