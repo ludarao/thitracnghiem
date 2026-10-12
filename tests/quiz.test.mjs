@@ -7,7 +7,7 @@ import {
   prepareQuestions,
   validateConfig,
 } from "../src/lib/quiz-rules.ts";
-import { advanceAttempt, latestAttempts } from "../src/lib/attempt-state.ts";
+import { advanceAttempt, bestAttempts } from "../src/lib/attempt-state.ts";
 import {
   DEFAULT_CONFIG,
   calculateCollectiveRanks,
@@ -142,16 +142,16 @@ test("Ngưỡng đạt sử dụng tỷ lệ thật, không tỷ lệ làm tròn
   assert.equal(submitted.result.percentage, 67);
   assert.equal(submitted.result.isPassed, false);
 });
-test("Lấy lượt đã nộp cuối, kể cả điểm thấp hơn; lượt chưa nộp không thay thế", () => {
+test("Lấy điểm cao nhất; lượt thấp hơn hoặc chưa nộp không thay thế", () => {
   const attempts = [
     { id: "1", candidateId: "a", submittedAt: new Date(1000), score: 10 },
     { id: "2", candidateId: "a", submittedAt: new Date(2000), score: 3 },
     { id: "3", candidateId: "a", submittedAt: null, score: 9 },
     { id: "4", candidateId: "b", submittedAt: new Date(1500), score: 5 },
   ];
-  const latest = latestAttempts(attempts);
+  const latest = bestAttempts(attempts);
   assert.equal(latest.length, 2);
-  assert.equal(latest[0].score, 3);
+  assert.equal(latest.find((a) => a.candidateId === "a").score, 10);
 });
 test("Tập thể dùng trạng thái đạt của kỳ thi và số người đã khử trùng", () => {
   const result = {
@@ -167,4 +167,13 @@ test("Tập thể dùng trạng thái đạt của kỳ thi và số người đ
   assert.equal(ranks[0].participationRate, 50);
   assert.equal(ranks[0].passRate, 100);
   assert.equal(ranks[0].overallScore, 72);
+});
+
+test("Điểm cao nhất: bằng điểm lấy lượt mới hơn, rồi ID để chọn ổn định", () => {
+  const attempts = [
+    { id: "1", candidateId: "a", submittedAt: new Date(1000), score: 10 },
+    { id: "2", candidateId: "a", submittedAt: new Date(2000), score: 10 },
+    { id: "3", candidateId: "a", submittedAt: new Date(2000), score: 10 },
+  ];
+  assert.equal(bestAttempts(attempts)[0].id, "3");
 });

@@ -174,9 +174,18 @@ db.questionBank = {
   findUnique: async () => null,
 };
 db.$queryRaw = async (strings, ...values) => {
+  assert.match(
+    strings.join(" "),
+    /"summary"->>'score'\)\:\:numeric DESC NULLS LAST/,
+  );
   const rows = [...attempts.values()]
     .filter((a) => a.examId === values[0] && a.submittedAt)
-    .sort((a, b) => b.submittedAt - a.submittedAt || b.id.localeCompare(a.id));
+    .sort(
+      (a, b) =>
+        b.summary.score - a.summary.score ||
+        b.submittedAt - a.submittedAt ||
+        b.id.localeCompare(a.id),
+    );
   const seen = new Set();
   if (strings.join(" ").includes("GROUP BY")) {
     const latest = new Map();
@@ -291,7 +300,7 @@ test("API lượt thi: không lộ đáp án đúng, chấm server và nộp tr�
     ),
   );
 });
-test("API bảng xếp hạng: lấy điểm lượt cuối thấp hơn, ẩn điện thoại/mã trên bảng công khai", async () => {
+test("API bảng xếp hạng: giữ điểm cao nhất dù lượt cuối thấp hơn, ẩn điện thoại/mã trên bảng công khai", async () => {
   reset();
   let first = await start();
   await action(first.token, { action: "submit", answers: { 1: "A", 2: "B" } });
@@ -300,7 +309,7 @@ test("API bảng xếp hạng: lấy điểm lượt cuối thấp hơn, ẩn đ
   await action(second.token, { action: "submit", answers: {} });
   const data = await (await results.GET(req("/api/results"))).json();
   assert.equal(data.results.length, 1);
-  assert.equal(data.results[0].score, 0);
+  assert.equal(data.results[0].score, 10);
   assert.equal(data.totalAttempts, 2);
   assert.ok(!("phone" in data.results[0].userInfo));
   assert.ok(!("candidateCode" in data.results[0].userInfo));
@@ -553,7 +562,7 @@ test("API 5001 người: response 100 người/trang, thống kê và tập th�
   assert.equal(last.hasMore, false);
 });
 
-test("API số lượng: thi lại chỉ tính một người, theo đơn vị lượt cuối; đơn vị chưa thi là 0", async () => {
+test("API số lượng: bằng điểm lấy đơn vị lượt mới hơn, chỉ tính một người; đơn vị chưa thi là 0", async () => {
   reset();
   const first = await start();
   await action(first.token, { action: "submit", answers: {} });
@@ -594,4 +603,35 @@ test("API nộp đồng thời cùng lượt: một kết quả thắng, đáp �
     ),
   );
   assert.equal([...attempts.values()][0].version, 1);
+});
+
+test("API điểm cao nhất: nâng điểm, giữ đơn vị lượt tốt nhất và đủ lịch sử", async () => {
+  reset();
+  const first = await start();
+  await action(first.token, { action: "submit", answers: {} });
+  const best = await start({ ...userInfo, unit: DEFAULT_CONFIG.units[1].name });
+  await action(best.token, { action: "submit", answers: { 1: "A", 2: "B" } });
+  const last = await start();
+  await action(last.token, { action: "submit", answers: { 1: "A" } });
+  const data = await (await results.GET(req("/api/results"))).json();
+  assert.equal(data.results.length, 1);
+  assert.equal(data.results[0].id, best.id);
+  assert.equal(data.results[0].score, 10);
+  const counts = await (await results.GET(req("/api/results?counts=1"))).json();
+  assert.equal(
+    counts.units.find((r) => r.unit === userInfo.unit).participantCount,
+    0,
+  );
+  assert.equal(
+    counts.units.find((r) => r.unit === DEFAULT_CONFIG.units[1].name)
+      .participantCount,
+    1,
+  );
+  const headers = await login();
+  const history = await (
+    await results.GET(
+      req("/api/results?history=1", "GET", undefined, headers),
+    )
+  ).json();
+  assert.equal(history.history.length, 3);
 });

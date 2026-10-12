@@ -49,7 +49,8 @@ export default function DashboardPage() {
       </div>
       <p className="text-sm text-slate-600">
         Mỗi thí sinh đã nộp bài được tính một lần trong kỳ thi hiện tại. Nếu thi
-        lại, tính theo đơn vị của lượt nộp cuối.
+        lại, tính theo đơn vị của lượt có điểm cao nhất; bằng điểm lấy lượt nộp
+        mới hơn.
       </p>
       {error && (
         <p role="alert" className="text-red-700">

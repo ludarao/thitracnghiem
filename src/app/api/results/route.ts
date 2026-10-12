@@ -16,7 +16,7 @@ const leaderboard = unstable_cache(
       { summary: ExamResult; total: bigint }[]
     >`
  WITH submitted AS (SELECT "candidateId", "submittedAt", "id", "summary" FROM "Attempt" WHERE "examId"=${s.activeExamId} AND "submittedAt" IS NOT NULL)
- SELECT DISTINCT ON ("candidateId") "summary", (SELECT COUNT(*) FROM submitted) AS total FROM submitted ORDER BY "candidateId", "submittedAt" DESC,"id" DESC`;
+ SELECT DISTINCT ON ("candidateId") "summary", (SELECT COUNT(*) FROM submitted) AS total FROM submitted ORDER BY "candidateId", ("summary"->>'score')::numeric DESC NULLS LAST, "submittedAt" DESC,"id" DESC`;
     const minimal = rows.map(({ summary: r }) => ({
       id: r.id,
       score: r.score,
@@ -38,7 +38,7 @@ const leaderboard = unstable_cache(
       ids: minimal.map((r) => r.id),
     };
   },
-  ["public-leaderboard-v2"],
+  ["public-leaderboard-best-v3"],
   { revalidate: 60, tags: ["quiz-leaderboard"] },
 );
 const participationCounts = unstable_cache(
@@ -49,8 +49,8 @@ const participationCounts = unstable_cache(
         select: { activeExamId: true, config: true },
       })) ?? (await settings());
     const rows = await prisma.$queryRaw<{ unit: string; count: bigint }[]>`
- WITH latest AS (SELECT DISTINCT ON ("candidateId") "info" FROM "Attempt" WHERE "examId"=${s.activeExamId} AND "submittedAt" IS NOT NULL ORDER BY "candidateId","submittedAt" DESC,"id" DESC)
- SELECT "info"->>'unit' AS unit, COUNT(*) AS count FROM latest GROUP BY "info"->>'unit'`;
+ WITH best AS (SELECT DISTINCT ON ("candidateId") "info" FROM "Attempt" WHERE "examId"=${s.activeExamId} AND "submittedAt" IS NOT NULL ORDER BY "candidateId",("summary"->>'score')::numeric DESC NULLS LAST,"submittedAt" DESC,"id" DESC)
+ SELECT "info"->>'unit' AS unit, COUNT(*) AS count FROM best GROUP BY "info"->>'unit'`;
     const counts = new Map(rows.map((r) => [r.unit, Number(r.count)]));
     const names = new Set([
       ...(s.config as unknown as ExamConfig).units.map((u) => u.name),
@@ -64,7 +64,7 @@ const participationCounts = unstable_cache(
       })),
     };
   },
-  ["quiz-participation-counts-v1"],
+  ["quiz-participation-counts-best-v2"],
   { revalidate: 60, tags: ["quiz-leaderboard"] },
 );
 export async function GET(req: NextRequest) {
@@ -165,7 +165,7 @@ export async function GET(req: NextRequest) {
         );
         return ids.map((id) => byId.get(id)).filter(Boolean);
       },
-      ["public-results-page-v2", snapshot.asOf, String(requested)],
+      ["public-results-page-best-v3", snapshot.asOf, String(requested)],
       { revalidate: 60, tags: ["quiz-leaderboard"] },
     )();
     const { ids: unused, ...stats } = snapshot;

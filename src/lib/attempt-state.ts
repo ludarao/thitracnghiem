@@ -72,15 +72,21 @@ export function advanceAttempt(
   return next;
 }
 
-/** Deduplicate first, then filter by unit: a previous unit must not retain an old score. */
-export function latestAttempts<
-  T extends { candidateId: string; submittedAt: Date | null; id: string },
+/** Select the highest submitted score per candidate; equal scores use the newest submission. */
+export function bestAttempts<
+  T extends {
+    candidateId: string;
+    submittedAt: Date | null;
+    id: string;
+    score: number;
+  },
 >(attempts: T[]): T[] {
   const seen = new Set<string>();
   return [...attempts]
     .filter((a) => a.submittedAt)
     .sort(
       (a, b) =>
+        b.score - a.score ||
         b.submittedAt!.getTime() - a.submittedAt!.getTime() ||
         b.id.localeCompare(a.id),
     )

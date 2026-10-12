@@ -296,7 +296,7 @@ export default function ExamPage() {
           </div>
           <p className="mt-7 text-sm leading-relaxed text-stone-700">
             Điền thông tin để bắt đầu dự thi. Bạn có thể thi lại; hệ thống ghi
-            nhận kết quả của lần nộp cuối.
+            nhận kết quả cao nhất qua các lần thi.
           </p>
         </section>
         <div className="bg-white rounded-2xl shadow-xl shadow-amber-900/10 border border-amber-200 overflow-hidden">
@@ -397,7 +397,7 @@ export default function ExamPage() {
                 />
                 <p className="text-xs text-slate-500 mt-1">
                   Dùng cùng họ tên và số điện thoại để thi lại. Kết quả ghi nhận
-                  lượt nộp cuối.
+                  lượt có điểm cao nhất (bằng điểm lấy lượt nộp mới hơn).
                 </p>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -462,7 +462,8 @@ export default function ExamPage() {
                   </select>
                 </div>
                 <p className="text-xs text-slate-500 mt-1">
-                  * Bạn được ghi nhận đã dự thi tại đơn vị của lượt nộp cuối.
+                  * Bạn được ghi nhận đã dự thi tại đơn vị của lượt có điểm cao
+                  nhất (bằng điểm lấy lượt nộp mới hơn).
                 </p>
               </div>
 
