@@ -1,3 +1,4 @@
+import { validateMonitoringReport } from "./local-exam-guard";
 import { prisma } from "./prisma";
 import { advanceAttempt, type AttemptState } from "./attempt-state";
 import { hydrateQuestions } from "./question-bank";
@@ -38,7 +39,11 @@ export async function getAttempt(token: string) {
     serverTime: Date.now(),
   };
 }
-export async function submitAttempt(token: string, answers: unknown) {
+export async function submitAttempt(
+  token: string,
+  answers: unknown,
+  monitoring?: unknown,
+) {
   const { state, serverTime } = await getAttempt(token);
   if (state.result) return { state, serverTime };
   if (
@@ -48,6 +53,9 @@ export async function submitAttempt(token: string, answers: unknown) {
     Object.keys(answers).length > state.questions.length
   )
     throw new Error("Bài làm không hợp lệ.");
+  const report = state.config.monitorEnabled
+    ? validateMonitoringReport(monitoring)
+    : undefined;
   const selected: Record<string, string> = {};
   const byId = new Map(state.questions.map((q) => [String(q.id), q]));
   for (const [id, option] of Object.entries(answers)) {
@@ -66,7 +74,11 @@ export async function submitAttempt(token: string, answers: unknown) {
     { action: "submit" },
     serverTime,
   );
-  const result = graded.result!;
+  const result = {
+    ...graded.result!,
+    ...(report ? { localMonitoring: report } : {}),
+  };
+  graded.result = result;
   // PostgreSQL rechecks submittedAt after acquiring the row lock. Exactly one
   // concurrent submit can win; subsequent requests cannot overwrite its answers.
   const saved = await prisma.attempt.updateMany({

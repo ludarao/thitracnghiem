@@ -57,6 +57,19 @@ export function validateQuestions(value: unknown): Question[] {
   return value;
 }
 export function validateConfig(config: ExamConfig, count: number) {
+  const protection = {
+    monitorEnabled: config.monitorEnabled ?? true,
+    maxAwaySeconds: config.maxAwaySeconds ?? 30,
+    preventCopy: config.preventCopy ?? true,
+  };
+  if (
+    typeof protection.monitorEnabled !== "boolean" ||
+    typeof protection.preventCopy !== "boolean" ||
+    !Number.isInteger(protection.maxAwaySeconds) ||
+    protection.maxAwaySeconds < 5 ||
+    protection.maxAwaySeconds > 300
+  )
+    throw new Error("Thời gian rời màn hình phải từ 5 đến 300 giây.");
   for (const [key, min, max] of [
     ["questionCount", 1, count],
     ["totalTimeMinutes", 1, 1440],
@@ -98,6 +111,7 @@ export function validateConfig(config: ExamConfig, count: number) {
     names.add(unit.name.trim().toLowerCase());
   }
   return {
+    ...protection,
     title: config.title.trim(),
     description: config.description,
     totalTimeMinutes: config.totalTimeMinutes,

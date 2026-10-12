@@ -148,10 +148,11 @@ export async function GET(req: NextRequest) {
         const byId = new Map(
           records.map((a) => {
             const r = a.summary as unknown as ExamResult;
+            const { localMonitoring: privateMonitoring, ...publicResult } = r;
             return [
               r.id,
               {
-                ...r,
+                ...publicResult,
                 answers: [],
                 userInfo: {
                   unit: r.userInfo.unit,

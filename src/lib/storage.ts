@@ -4,6 +4,9 @@ export const DEFAULT_CONFIG: ExamConfig = {
   title: "HỘI THI TÌM HIỂU NGHỊ QUYẾT ĐẠI HỘI XIII ĐOÀN TNCS HỒ CHÍ MINH",
   description:
     "Kiểm tra, đánh giá nhận thức cán bộ, đoàn viên thanh niên về Nghị quyết Đại hội Đoàn toàn quốc lần thứ XIII",
+  monitorEnabled: true,
+  maxAwaySeconds: 30,
+  preventCopy: true,
   totalTimeMinutes: 20, // 20 phút tổng bài thi
   questionCount: 30, // Lấy 30 câu ngẫu nhiên từ ngân hàng
   shuffleQuestions: true, // Đảo thứ tự câu hỏi

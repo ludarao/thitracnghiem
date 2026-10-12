@@ -59,6 +59,12 @@ require.cache[require.resolve("../src/lib/client.ts")] = {
   loaded: true,
   exports: { api: (...args) => active.api(...args) },
 };
+require.cache[require.resolve("../src/components/useExamTab.ts")] = {
+  loaded: true,
+  exports: {
+    useExamTab: () => ({ status: active.ownership ?? "owned", retry() {} }),
+  },
+};
 const Page = require("../src/app/page.tsx").default;
 const cfg = {
   title: "Test",
@@ -101,7 +107,7 @@ function text(tree) {
   if (Array.isArray(tree)) return tree.map(text).join("");
   return text(tree.props?.children);
 }
-function setup(saved = session) {
+function setup(saved = session, options = {}) {
   const h = {
     index: 0,
     slots: [],
@@ -109,16 +115,18 @@ function setup(saved = session) {
     queue: [],
     calls: [],
     tree: null,
+    ownership: options.ownership ?? "owned",
   };
   const storage = new Map([
     [
       "quiz_local_attempt_v2",
-      JSON.stringify({
-        token: "a".repeat(64),
-        session: saved,
-        offset: 0,
-        frozen: null,
-      }),
+      options.raw ??
+        JSON.stringify({
+          token: "a".repeat(64),
+          session: saved,
+          offset: 0,
+          frozen: null,
+        }),
     ],
   ]);
   globalThis.localStorage = {
@@ -126,7 +134,24 @@ function setup(saved = session) {
     setItem: (k, v) => storage.set(k, v),
     removeItem: (k) => storage.delete(k),
   };
-  globalThis.window = { addEventListener() {}, removeEventListener() {} };
+  const events = new Map();
+  const listen = (name, fn) => {
+    if (!events.has(name)) events.set(name, new Set());
+    events.get(name).add(fn);
+  };
+  const remove = (name, fn) => events.get(name)?.delete(fn);
+  globalThis.window = { addEventListener: listen, removeEventListener: remove };
+  globalThis.document = {
+    hidden: false,
+    hasFocus: () => h.focused !== false,
+    addEventListener: listen,
+    removeEventListener: remove,
+  };
+  h.emit = (name) => {
+    for (const fn of events.get(name) ?? []) fn();
+  };
+  h.storage = storage;
+  h.focused = true;
   h.api = (url) => {
     h.calls.push(url);
     throw new Error("offline");
@@ -146,6 +171,7 @@ function setup(saved = session) {
     for (const e of h.effects) e?.cleanup?.();
     delete globalThis.localStorage;
     delete globalThis.window;
+    delete globalThis.document;
   };
   h.button = (label) =>
     nodes(h.tree).find((n) => n.type === "button" && text(n).includes(label));
@@ -260,6 +286,156 @@ test("service number field formats typing and paste without losing leading zeroe
     });
     h.render();
     assert.equal(input().props.value, "001-002");
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("leaving and returning shows a blocking overlay with zero monitoring requests", async () => {
+  const h = setup({
+    ...session,
+    result: null,
+    config: {
+      ...cfg,
+      monitorEnabled: true,
+      maxAwaySeconds: 30,
+      preventCopy: true,
+    },
+  });
+  const realNow = Date.now;
+  let now = realNow();
+  Date.now = () => now;
+  try {
+    await h.flush();
+    h.focused = false;
+    h.emit("blur");
+    document.hidden = true;
+    h.emit("visibilitychange");
+    h.render();
+    let saved = JSON.parse(h.storage.get("quiz_local_attempt_v2"));
+    assert.equal(saved.guard.leaveCount, 1);
+    assert.deepEqual(saved.guard.awayAnswers, { 1: "A" });
+    assert.deepEqual(h.calls, []);
+    const option = nodes(h.tree).find(
+      (n) => n.type === "button" && text(n).replace(/\s/g, "") === "BB",
+    );
+    assert.ok(option);
+    option.props.onClick();
+    h.render();
+    assert.deepEqual(
+      JSON.parse(h.storage.get("quiz_local_attempt_v2")).session.answers,
+      { 1: "A" },
+    );
+    now += 10000;
+    h.focused = true;
+    document.hidden = false;
+    h.emit("focus");
+    h.render();
+    const overlay = nodes(h.tree).find(
+      (n) => n.props?.onContinue && "ended" in n.props,
+    );
+    assert.ok(overlay);
+    assert.equal(overlay.props.ended, null);
+    overlay.props.onContinue();
+    h.render();
+    assert.equal(
+      JSON.parse(h.storage.get("quiz_local_attempt_v2")).guard.awaySince,
+      null,
+    );
+    assert.deepEqual(h.calls, []);
+  } finally {
+    h.cleanup();
+    Date.now = realNow;
+  }
+});
+test("past away limit freezes departure answers, submits once and survives reload while offline", async () => {
+  const realNow = Date.now;
+  let now = realNow();
+  Date.now = () => now;
+  const h = setup({
+    ...session,
+    result: null,
+    config: { ...cfg, monitorEnabled: true, maxAwaySeconds: 30 },
+  });
+  try {
+    await h.flush();
+    h.focused = false;
+    h.emit("blur");
+    h.render();
+    now += 31000;
+    h.focused = true;
+    h.emit("focus");
+    await h.flush();
+    assert.deepEqual(h.calls, ["/api/exam"]);
+    let saved = JSON.parse(h.storage.get("quiz_local_attempt_v2"));
+    assert.equal(saved.guard.endedReason, "away");
+    assert.deepEqual(saved.frozen, { 1: "A" });
+    const raw = h.storage.get("quiz_local_attempt_v2");
+    h.cleanup();
+    const restored = setup(session, { raw });
+    try {
+      await restored.flush();
+      assert.deepEqual(restored.calls, ["/api/exam"]);
+      assert.deepEqual(
+        JSON.parse(restored.storage.get("quiz_local_attempt_v2")).frozen,
+        { 1: "A" },
+      );
+      assert.ok(nodes(restored.tree).some((n) => n.props?.ended === "away"));
+    } finally {
+      restored.cleanup();
+    }
+  } finally {
+    Date.now = realNow;
+  }
+});
+test("bad local snapshot is backed up and offers recovery instead of reloading forever", async () => {
+  const h = setup(session, { raw: "{broken" });
+  try {
+    await h.flush();
+    assert.ok(text(h.tree).includes("Bản lưu trên máy bị lỗi"));
+    assert.equal(h.storage.has("quiz_local_attempt_v2"), false);
+    assert.ok([...h.storage.values()].includes("{broken"));
+    assert.deepEqual(h.calls, ["/api/config"]);
+    assert.ok(h.button("Đặt lại"));
+  } finally {
+    h.cleanup();
+  }
+});
+test("secondary tab cannot write, restore or call exam API", async () => {
+  const h = setup({ ...session, result: null }, { ownership: "blocked" });
+  try {
+    const before = h.storage.get("quiz_local_attempt_v2");
+    await h.flush();
+    assert.ok(text(h.tree).includes("tab khác"));
+    assert.deepEqual(h.calls, []);
+    assert.equal(h.storage.get("quiz_local_attempt_v2"), before);
+  } finally {
+    h.cleanup();
+  }
+});
+test("copy prevention is scoped to question panel and does not terminate attempt", async () => {
+  const h = setup({
+    ...session,
+    result: null,
+    config: { ...cfg, preventCopy: true },
+  });
+  try {
+    await h.flush();
+    const panel = nodes(h.tree).find((n) => n.props?.onCopy);
+    assert.ok(panel);
+    let prevented = false;
+    panel.props.onCopy({
+      preventDefault() {
+        prevented = true;
+      },
+    });
+    h.render();
+    assert.equal(prevented, true);
+    assert.equal(
+      JSON.parse(h.storage.get("quiz_local_attempt_v2")).guard.endedReason,
+      null,
+    );
+    assert.deepEqual(h.calls, []);
   } finally {
     h.cleanup();
   }

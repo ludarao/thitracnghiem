@@ -425,6 +425,7 @@ export default function AdminPage() {
                 <th className="p-2">Đơn vị</th>
                 <th className="p-2">Điểm</th>
                 <th className="p-2">Thời điểm nộp</th>
+                <th className="p-2">Giám sát local</th>
                 <th className="p-2">Kỳ thi</th>
               </tr>
             </thead>
@@ -440,6 +441,11 @@ export default function AdminPage() {
                   <td className="p-2">{r.score}/10</td>
                   <td className="p-2">
                     {new Date(r.submittedAt).toLocaleString("vi-VN")}
+                  </td>
+                  <td className="p-2 text-xs">
+                    {r.localMonitoring
+                      ? `${r.localMonitoring.leaveCount} lần rời • ${Math.round(r.localMonitoring.totalAwayMs / 1000)} giây${r.localMonitoring.terminationReason === "away" ? " • Tự kết thúc do rời màn hình" : ""} (trình duyệt báo cáo)`
+                      : "—"}
                   </td>
                   <td className="p-2">{r.examId}</td>
                 </tr>
@@ -623,6 +629,53 @@ export default function AdminPage() {
               </label>
             </div>
           </div>
+
+          <section className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+            <h3 className="font-bold text-slate-900">
+              Giám sát màn hình thi (xử lý trên máy thí sinh)
+            </h3>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={config.monitorEnabled ?? true}
+                onChange={(e) =>
+                  setConfig({ ...config, monitorEnabled: e.target.checked })
+                }
+              />
+              Che bài khi rời tab, cửa sổ hoặc ứng dụng
+            </label>
+            <label className="block text-sm">
+              Thời gian rời tối đa (5–300 giây)
+              <input
+                type="number"
+                min={5}
+                max={300}
+                value={config.maxAwaySeconds ?? 30}
+                onChange={(e) =>
+                  setConfig({
+                    ...config,
+                    maxAwaySeconds: Number(e.target.value),
+                  })
+                }
+                className="ml-3 w-24 border rounded-lg px-2 py-1"
+              />
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={config.preventCopy ?? true}
+                onChange={(e) =>
+                  setConfig({ ...config, preventCopy: e.target.checked })
+                }
+              />
+              Hạn chế sao chép câu hỏi và đáp án
+            </label>
+            <p className="text-xs text-slate-500">
+              Quá hạn sẽ kết thúc lượt và nộp đáp án đã lưu khi rời màn hình.
+              Đồng hồ tổng vẫn chạy. Cấu hình chỉ áp dụng cho lượt mới; không
+              gửi request giám sát.
+            </p>
+          </section>
 
           {/* Quản lý danh sách đơn vị */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-5">

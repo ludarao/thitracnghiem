@@ -1,3 +1,4 @@
+import { protectionSettings } from "../../../lib/local-exam-guard";
 import {
   readLimitedJson,
   verifyTurnstile,
@@ -35,7 +36,8 @@ export async function POST(req: NextRequest) {
     );
     const info = body.userInfo as UserInfo;
     const s = await settings();
-    const cfg = s.config as unknown as ExamConfig;
+    const existingConfig = s.config as unknown as ExamConfig;
+    const cfg = { ...existingConfig, ...protectionSettings(existingConfig) };
     if (!cfg.isOpen) throw new Error("Kỳ thi đang đóng.");
     if (
       !info ||
@@ -122,7 +124,7 @@ async function processAttempt(req: NextRequest, mutate: boolean) {
         { status: 400 },
       );
     const { state, serverTime } = mutate
-      ? await submitAttempt(digest(raw), body.answers)
+      ? await submitAttempt(digest(raw), body.answers, body.localMonitoring)
       : await getAttempt(digest(raw));
     const {
       id,

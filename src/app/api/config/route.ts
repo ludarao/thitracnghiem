@@ -1,3 +1,4 @@
+import { protectionSettings } from "../../../lib/local-exam-guard";
 import { securityConfig } from "../../../lib/request-security";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
@@ -12,7 +13,13 @@ const publicConfig = unstable_cache(
         where: { id: "main" },
         select: { config: true, activeExamId: true },
       })) ?? (await settings());
-    return { config: s.config, examId: s.activeExamId };
+    return {
+      config: {
+        ...(s.config as unknown as ExamConfig),
+        ...protectionSettings(s.config as unknown as ExamConfig),
+      },
+      examId: s.activeExamId,
+    };
   },
   ["quiz-public-config-v2"],
   { revalidate: 60, tags: ["quiz-config"] },
@@ -33,7 +40,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        config: s.config,
+        config: {
+          ...(s.config as unknown as ExamConfig),
+          ...protectionSettings(s.config as unknown as ExamConfig),
+        },
         examId: s.activeExamId,
         security: securityConfig(),
         ...(admin ? { questions: s.questions } : {}),

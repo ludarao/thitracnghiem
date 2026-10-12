@@ -711,3 +711,97 @@ test("API cấu hình: có security ở cả phiên Admin và công khai, không
     delete process.env.TURNSTILE_SECRET_KEY;
   }
 });
+
+test("API 1.3: cấu hình guard được snapshot; báo cáo local đi cùng lần nộp và retry không đổi", async () => {
+  reset();
+  const first = await start();
+  assert.equal(first.config.monitorEnabled, true);
+  assert.equal(first.config.maxAwaySeconds, 30);
+  assert.equal(first.config.preventCopy, true);
+  const localMonitoring = {
+    leaveCount: 1,
+    totalAwayMs: 31000,
+    terminationReason: "away",
+  };
+  const response = await action(first.token, {
+    action: "submit",
+    answers: { 1: "A" },
+    localMonitoring,
+  });
+  const submitted = await response.json();
+  assert.deepEqual(submitted.result.localMonitoring, {
+    ...localMonitoring,
+    reportedByClient: true,
+  });
+  const retry = await (
+    await action(first.token, {
+      action: "submit",
+      answers: {},
+      localMonitoring: {
+        leaveCount: 0,
+        totalAwayMs: 0,
+        terminationReason: null,
+      },
+    })
+  ).json();
+  assert.deepEqual(
+    retry.result.localMonitoring,
+    submitted.result.localMonitoring,
+  );
+  assert.equal(retry.result.score, 5);
+  const publicData = await (await results.GET(req("/api/results"))).json();
+  assert.ok(!("localMonitoring" in publicData.results[0]));
+  const second = await start();
+  const bad = await expectedError(() =>
+    action(second.token, {
+      action: "submit",
+      answers: {},
+      localMonitoring: {
+        leaveCount: -1,
+        totalAwayMs: 0,
+        terminationReason: null,
+      },
+    }),
+  );
+  assert.equal(bad.status, 400);
+  assert.equal(attempts.get(second.id).submittedAt, null);
+});
+test("API 1.3: lưu/tắt giám sát và chống copy ở Admin, không sửa cấu hình lượt đang làm", async () => {
+  reset();
+  const old = await start();
+  const headers = await login();
+  const updated = {
+    ...config.config,
+    monitorEnabled: false,
+    maxAwaySeconds: 45,
+    preventCopy: false,
+  };
+  const response = await settings.PUT(
+    req(
+      "/api/config",
+      "PUT",
+      { config: updated, questions: config.questions },
+      headers,
+    ),
+  );
+  assert.equal(response.status, 200);
+  const current = await start();
+  assert.equal(current.config.monitorEnabled, false);
+  assert.equal(current.config.preventCopy, false);
+  assert.equal(current.config.maxAwaySeconds, 45);
+  assert.equal(attempts.get(old.id).config.monitorEnabled, true);
+  const invalid = await expectedError(() =>
+    settings.PUT(
+      req(
+        "/api/config",
+        "PUT",
+        {
+          config: { ...updated, maxAwaySeconds: 0 },
+          questions: config.questions,
+        },
+        headers,
+      ),
+    ),
+  );
+  assert.equal(invalid.status, 400);
+});

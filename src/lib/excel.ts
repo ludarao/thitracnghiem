@@ -130,6 +130,11 @@ export function exportResultsToExcel(
       res.userInfo.serviceNumber || res.userInfo.candidateCode || res.id,
     "Đơn vị": res.userInfo.unit,
     "Điểm số (/10)": res.score,
+    "Số lần rời màn hình (local)": res.localMonitoring?.leaveCount ?? "",
+    "Tổng giây rời (local)": res.localMonitoring
+      ? Math.round(res.localMonitoring.totalAwayMs / 1000)
+      : "",
+    "Lý do tự kết thúc (local)": res.localMonitoring?.terminationReason ?? "",
     "Số câu đúng": `${res.correctCount}/${res.totalQuestions}`,
     "Tỷ lệ (%)": `${res.percentage}%`,
     "Kết quả": res.isPassed ? "Đạt" : "Chưa đạt",

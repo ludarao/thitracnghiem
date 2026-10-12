@@ -16,6 +16,9 @@ export interface UnitTarget {
 }
 
 export interface ExamConfig {
+  monitorEnabled?: boolean;
+  maxAwaySeconds?: number;
+  preventCopy?: boolean;
   title: string;
   description: string;
   totalTimeMinutes: number; // Tổng thời gian thi cả bài (phút), 0 = không giới hạn
@@ -45,7 +48,14 @@ export interface AnswerLog {
   timeSpentSeconds: number; // Thời gian trả lời cho câu này
 }
 
+export interface LocalMonitoring {
+  reportedByClient: true;
+  leaveCount: number;
+  totalAwayMs: number;
+  terminationReason: "away" | "deadline" | null;
+}
 export interface ExamResult {
+  localMonitoring?: LocalMonitoring;
   id: string;
   userInfo: UserInfo;
   startTime: string;

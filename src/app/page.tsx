@@ -2,6 +2,22 @@
 import { formatServiceNumberInput } from "../lib/service-number-input";
 import Verification from "../components/Verification";
 
+import { useExamTab } from "../components/useExamTab";
+import ExamGuardDialog from "../components/ExamGuardDialog";
+import {
+  emptyGuard,
+  leaveExam,
+  returnToExam,
+  checkAway,
+  continueExam,
+  monitoringReport,
+  type GuardState,
+} from "../lib/local-exam-guard";
+import {
+  parseLocalAttempt,
+  quarantineAttempt,
+  LOCAL_ATTEMPT_KEY,
+} from "../lib/local-attempt";
 import React, { useState, useEffect, useRef } from "react";
 import { api } from "../lib/client";
 import { ExamConfig, Question, UserInfo, ExamResult } from "../types/quiz";
@@ -32,6 +48,18 @@ type Session = {
   result: ExamResult | null;
 };
 export default function ExamPage() {
+  const ownership = useExamTab();
+  const [guard, setGuard] = useState<GuardState>(emptyGuard);
+  const guardRef = useRef<GuardState>(emptyGuard());
+  const [protectionNow, setProtectionNow] = useState(0);
+  const [screenPresent, setScreenPresent] = useState(true);
+  const [copyNotice, setCopyNotice] = useState("");
+  const [recovery, setRecovery] = useState<{
+    raw: string;
+    token: string | null;
+    backedUp: boolean;
+  } | null>(null);
+  const initialized = useRef(false);
   const [security, setSecurity] = useState({ enabled: false, siteKey: "" });
   const [verificationToken, setVerificationToken] = useState("");
   const [verificationReset, setVerificationReset] = useState(0);
@@ -79,9 +107,13 @@ export default function ExamPage() {
   };
   const frozen = useRef<Record<number, string> | null>(null);
   const saveLocal = (data: Session) => {
+    if (ownership.status !== "owned")
+      throw new Error("Bài đang được mở ở tab khác.");
     localStorage.setItem(
       "quiz_local_attempt_v2",
       JSON.stringify({
+        version: 3,
+        guard: guardRef.current,
         token: tokenRef.current,
         session: data,
         offset: clockOffset.current,
@@ -91,7 +123,12 @@ export default function ExamPage() {
     sessionRef.current = data;
   };
   const submit = async () => {
-    if (pending.current || !sessionRef.current || sessionRef.current.result)
+    if (
+      ownership.status !== "owned" ||
+      pending.current ||
+      !sessionRef.current ||
+      sessionRef.current.result
+    )
       return;
     try {
       if (!frozen.current) {
@@ -109,7 +146,15 @@ export default function ExamPage() {
         method: "PATCH",
         signal: AbortSignal.timeout(20000),
         headers: { Authorization: "Bearer " + tokenRef.current },
-        body: JSON.stringify({ action: "submit", answers: frozen.current }),
+        body: JSON.stringify({
+          action: "submit",
+          answers: frozen.current,
+          ...(sessionRef.current.config.monitorEnabled
+            ? {
+                localMonitoring: monitoringReport(guardRef.current, Date.now()),
+              }
+            : {}),
+        }),
       });
       apply(data);
       try {
@@ -161,17 +206,118 @@ export default function ExamPage() {
       setRegistrationLoading(false);
     }
   };
+  const commitGuard = (next: GuardState) => {
+    if (next === guardRef.current) return;
+    guardRef.current = next;
+    setGuard(next);
+    const session = sessionRef.current;
+    if (next.endedReason && !session?.result && !frozen.current)
+      frozen.current = { ...(next.awayAnswers ?? session?.answers ?? {}) };
+    try {
+      if (session) saveLocal(session);
+    } catch {
+      setError(
+        "Không lưu được trạng thái bài trên máy. Giữ trang này mở; lượt đã bị khóa để tránh mất đáp án.",
+      );
+      frozen.current ??= { ...(session?.answers ?? {}) };
+    }
+    if (next.endedReason && !session?.result) void submit();
+  };
+  const checkProtection = () => {
+    const session = sessionRef.current;
+    if (!session || session.result || ownership.status !== "owned") return;
+    const now = Date.now();
+    setProtectionNow(now);
+    if (session.config.monitorEnabled)
+      commitGuard(
+        checkAway(
+          guardRef.current,
+          now,
+          (session.config.maxAwaySeconds ?? 30) * 1000,
+          Date.parse(session.deadline) - clockOffset.current,
+        ),
+      );
+  };
+  const canInteract = () => {
+    if (
+      ownership.status !== "owned" ||
+      frozen.current ||
+      guardRef.current.endedReason ||
+      guardRef.current.awaySince !== null
+    )
+      return false;
+    const session = sessionRef.current;
+    if (
+      session?.config.monitorEnabled &&
+      (document.hidden || !document.hasFocus())
+    ) {
+      commitGuard(leaveExam(guardRef.current, Date.now(), session.answers));
+      return false;
+    }
+    checkProtection();
+    return !frozen.current && guardRef.current.awaySince === null;
+  };
   useEffect(() => {
+    if (ownership.status !== "owned" || initialized.current) return;
+    initialized.current = true;
     const load = async () => {
       try {
-        const local = localStorage.getItem("quiz_local_attempt_v2");
+        const local = localStorage.getItem(LOCAL_ATTEMPT_KEY);
         if (local) {
-          const saved = JSON.parse(local);
+          let saved;
+          try {
+            saved = parseLocalAttempt(local);
+          } catch {
+            let backedUp = false;
+            try {
+              quarantineAttempt(localStorage, local, Date.now());
+              backedUp = true;
+            } catch {
+              /* Keep the original if backup fails. */
+            }
+            setRecovery({
+              raw: local,
+              token: local.match(/"token"\s*:\s*"([a-f0-9]{64})"/)?.[1] ?? null,
+              backedUp,
+            });
+            await loadRegistrationConfig();
+            return;
+          }
           tokenRef.current = saved.token;
-          frozen.current = saved.frozen;
+          frozen.current = saved.frozen ?? null;
+          let next = saved.guard;
+          const present = !document.hidden && document.hasFocus();
+          setScreenPresent(present);
+          if (!saved.session.result && saved.session.config.monitorEnabled) {
+            const deadline = Date.parse(saved.session.deadline) - saved.offset;
+            if (present)
+              next = returnToExam(
+                next,
+                Date.now(),
+                (saved.session.config.maxAwaySeconds ?? 30) * 1000,
+                deadline,
+              );
+            else next = leaveExam(next, Date.now(), saved.session.answers);
+            next = checkAway(
+              next,
+              Date.now(),
+              (saved.session.config.maxAwaySeconds ?? 30) * 1000,
+              deadline,
+            );
+            if (next.endedReason)
+              frozen.current ??= {
+                ...(next.awayAnswers ?? saved.session.answers),
+              };
+          }
+          guardRef.current = next;
+          setGuard(next);
           apply({ ...saved.session, serverTime: Date.now() + saved.offset });
-          setCurrentIndex(saved.session.currentIndex || 0);
-          if (saved.frozen && !saved.session.result) void submit();
+          setCurrentIndex(saved.session.currentIndex ?? 0);
+          saveLocal({
+            ...saved.session,
+            serverTime: Date.now() + saved.offset,
+          });
+          if (frozen.current && !saved.session.result) void submit();
           return;
         }
         const old = localStorage.getItem("quiz_active_attempt");
@@ -190,15 +336,54 @@ export default function ExamPage() {
       }
     };
     void load();
+  }, [ownership.status]);
+  useEffect(() => {
+    if (ownership.status !== "owned") return;
     const online = () => {
       if (frozen.current) void submit();
     };
     window.addEventListener("online", online);
     return () => window.removeEventListener("online", online);
-  }, []);
+  }, [ownership.status]);
   useEffect(() => {
-    if (examState !== "IN_PROGRESS") return;
+    if (examState !== "IN_PROGRESS" || ownership.status !== "owned") return;
+    const session = sessionRef.current;
+    const leave = () => {
+      if (
+        !sessionRef.current?.config.monitorEnabled ||
+        sessionRef.current.result ||
+        frozen.current
+      )
+        return;
+      setScreenPresent(false);
+      commitGuard(
+        leaveExam(guardRef.current, Date.now(), sessionRef.current.answers),
+      );
+    };
+    const back = () => {
+      const present = !document.hidden && document.hasFocus();
+      setScreenPresent(present);
+      if (!present) return;
+      if (sessionRef.current?.config.monitorEnabled)
+        commitGuard(
+          returnToExam(
+            guardRef.current,
+            Date.now(),
+            (sessionRef.current.config.maxAwaySeconds ?? 30) * 1000,
+            Date.parse(sessionRef.current.deadline) - clockOffset.current,
+          ),
+        );
+    };
+    const visibility = () => (document.hidden ? leave() : back());
+    window.addEventListener("blur", leave);
+    window.addEventListener("focus", back);
+    document.addEventListener("visibilitychange", visibility);
+    window.addEventListener("pagehide", leave);
+    window.addEventListener("pageshow", back);
+    if (document.hidden || !document.hasFocus()) leave();
+    else back();
     const tick = () => {
+      checkProtection();
       const data = sessionRef.current;
       if (!data) return;
       const remaining = Math.max(
@@ -212,8 +397,67 @@ export default function ExamPage() {
     };
     tick();
     const timer = setInterval(tick, 1000);
-    return () => clearInterval(timer);
-  }, [examState]);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener("blur", leave);
+      window.removeEventListener("focus", back);
+      document.removeEventListener("visibilitychange", visibility);
+      window.removeEventListener("pagehide", leave);
+      window.removeEventListener("pageshow", back);
+    };
+  }, [examState, ownership.status]);
+  const protectionDialog = () => {
+    if (guard.acknowledged || (!guard.endedReason && guard.awaySince === null))
+      return null;
+    return (
+      <ExamGuardDialog
+        ended={guard.endedReason}
+        seconds={Math.max(
+          0,
+          Math.floor(
+            ((guard.returnedAt ?? protectionNow) -
+              (guard.awaySince ?? protectionNow)) /
+              1000,
+          ),
+        )}
+        limit={config?.maxAwaySeconds ?? 30}
+        present={screenPresent}
+        busy={busy}
+        error={error}
+        hasResult={!!result}
+        onContinue={() => {
+          if (document.hidden || !document.hasFocus()) return;
+          checkProtection();
+          if (!guardRef.current.endedReason)
+            commitGuard(continueExam(guardRef.current));
+        }}
+        onRetry={() => void submit()}
+        onClose={() => {
+          if (result) commitGuard({ ...guardRef.current, acknowledged: true });
+        }}
+      />
+    );
+  };
+  const blockCopy = (event: React.SyntheticEvent) => {
+    if (sessionRef.current?.config.preventCopy) {
+      event.preventDefault();
+      setCopyNotice("Không sao chép câu hỏi hoặc đáp án trong lúc thi.");
+    }
+  };
+  useEffect(() => {
+    if (ownership.status !== "owned") return;
+    const update = () =>
+      setScreenPresent(!document.hidden && document.hasFocus());
+    window.addEventListener("focus", update);
+    window.addEventListener("blur", update);
+    document.addEventListener("visibilitychange", update);
+    update();
+    return () => {
+      window.removeEventListener("focus", update);
+      window.removeEventListener("blur", update);
+      document.removeEventListener("visibilitychange", update);
+    };
+  }, [ownership.status]);
   const handleServiceNumberInput = (value: string) => {
     try {
       const serviceNumber = formatServiceNumberInput(value);
@@ -225,7 +469,7 @@ export default function ExamPage() {
   };
   const handleStartExam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (busy) return;
+    if (busy || ownership.status !== "owned" || recovery) return;
     if (!registrationReady || registrationPending.current) {
       setError("Vui lòng chờ tải cấu hình đăng ký hoặc bấm tải lại cấu hình.");
       return;
@@ -245,6 +489,9 @@ export default function ExamPage() {
       });
       tokenRef.current = data.token;
       frozen.current = null;
+      guardRef.current = emptyGuard();
+      setGuard(guardRef.current);
+      setCopyNotice("");
       apply(data);
       saveLocal(data);
       setCurrentIndex(0);
@@ -261,6 +508,7 @@ export default function ExamPage() {
     const data = sessionRef.current;
     if (
       !data ||
+      !canInteract() ||
       frozen.current ||
       Date.now() + clockOffset.current >= Date.parse(data.deadline)
     )
@@ -281,7 +529,7 @@ export default function ExamPage() {
     }
   };
   const navigate = (index: number) => {
-    if (!sessionRef.current) return;
+    if (!sessionRef.current || !canInteract()) return;
     try {
       saveLocal({ ...sessionRef.current, currentIndex: index });
       setCurrentIndex(index);
@@ -289,7 +537,9 @@ export default function ExamPage() {
       setError("Không lưu được tiến độ trên máy.");
     }
   };
-  const handleSubmitExam = () => void submit();
+  const handleSubmitExam = () => {
+    if (frozen.current || canInteract()) void submit();
+  };
 
   // Format time mm:ss
   const formatTime = (seconds: number) => {
@@ -298,6 +548,112 @@ export default function ExamPage() {
     return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
+  if (ownership.status !== "owned")
+    return (
+      <div
+        className="max-w-lg mx-auto p-6 bg-white rounded-2xl border space-y-4"
+        role="alert"
+      >
+        <h1 className="font-bold text-xl">
+          {ownership.status === "pending"
+            ? "Đang kiểm tra phiên thi..."
+            : ownership.status === "blocked"
+              ? "Bài thi đang mở ở tab khác"
+              : "Trình duyệt chưa hỗ trợ khóa phiên thi"}
+        </h1>
+        <p>
+          {ownership.status === "blocked"
+            ? "Chỉ một tab được phép làm bài để tránh ghi đè đáp án. Đóng tab thi kia rồi bấm thử lại."
+            : "Hãy dùng trình duyệt cập nhật và truy cập qua HTTPS. Dữ liệu bài trên máy vẫn được giữ."}
+        </p>
+        {ownership.status !== "pending" && (
+          <button
+            onClick={ownership.retry}
+            className="underline text-brand-700"
+          >
+            Thử nhận phiên
+          </button>
+        )}
+      </div>
+    );
+  if (recovery)
+    return (
+      <div
+        className="bg-white max-w-xl mx-auto rounded-2xl border p-6 space-y-4"
+        role="alert"
+      >
+        <h1 className="text-xl font-bold text-brand-700">
+          Bản lưu trên máy bị lỗi
+        </h1>
+        <p>
+          {recovery.backedUp
+            ? "Đã giữ bản sao để phục hồi; dữ liệu chưa bị xóa vĩnh viễn."
+            : "Chưa lưu được bản sao. Hãy tải bản lưu trước khi đặt lại."}{" "}
+          Server có thể chưa nhận các đáp án chọn offline.
+        </p>
+        {error && <p className="text-red-700">{error}</p>}
+        <button
+          className="underline mr-4"
+          onClick={() => {
+            const url = URL.createObjectURL(
+              new Blob([recovery.raw], { type: "application/json" }),
+            );
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = "ban-luu-bai-thi.json";
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          }}
+        >
+          Tải bản lưu lỗi
+        </button>
+        <button
+          disabled={!recovery.token || busy}
+          className="underline mr-4 disabled:opacity-50"
+          onClick={async () => {
+            setBusy(true);
+            try {
+              const data = await api<Session>("/api/exam", {
+                headers: { Authorization: "Bearer " + recovery.token },
+              });
+              tokenRef.current = recovery.token!;
+              guardRef.current = emptyGuard();
+              setGuard(guardRef.current);
+              frozen.current = null;
+              apply(data);
+              saveLocal(data);
+              setRecovery(null);
+              setError("");
+            } catch (e) {
+              setError((e as Error).message);
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          Phục hồi từ server
+        </button>
+        <button
+          className="underline text-brand-700"
+          onClick={() => {
+            if (
+              !recovery.backedUp &&
+              !confirm(
+                "Bản sao chưa lưu được. Bạn đã tải bản lưu và muốn bắt đầu lượt mới?",
+              )
+            )
+              return;
+            localStorage.removeItem(LOCAL_ATTEMPT_KEY);
+            localStorage.removeItem("quiz_active_attempt");
+            setRecovery(null);
+            setError("");
+            void loadRegistrationConfig();
+          }}
+        >
+          Đặt lại để đăng ký lượt mới
+        </button>
+      </div>
+    );
   if (!config) {
     if (error)
       return (
@@ -479,6 +835,14 @@ export default function ExamPage() {
               </div>
 
               <div className="pt-4">
+                {config.monitorEnabled && (
+                  <p className="mb-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-900">
+                    Khi rời tab, cửa sổ, chuyển ứng dụng hoặc khóa màn hình, bài
+                    sẽ bị che. Rời từ {config.maxAwaySeconds ?? 30} giây liên
+                    tục sẽ kết thúc lượt và nộp đáp án đã lưu. Đồng hồ tổng vẫn
+                    chạy.
+                  </p>
+                )}
                 {!registrationReady && (
                   <div className="mb-3 text-sm text-slate-600" role="status">
                     {registrationLoading ? (
@@ -549,6 +913,12 @@ export default function ExamPage() {
 
     return (
       <div className="max-w-4xl mx-auto py-2 sm:py-6 space-y-4">
+        {protectionDialog()}
+        {copyNotice && (
+          <p role="status" className="text-sm text-brand-700">
+            {copyNotice}
+          </p>
+        )}
         {error && (
           <p role="alert" className="p-3 bg-red-50 text-red-700">
             {error}
@@ -623,7 +993,20 @@ export default function ExamPage() {
         </div>
 
         {/* Nội dung câu hỏi */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+        <div
+          className={`bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 ${config.preventCopy ? "select-none" : ""}`}
+          onCopy={blockCopy}
+          onCut={blockCopy}
+          onContextMenu={blockCopy}
+          onKeyDown={(event) => {
+            if (
+              (event.ctrlKey || event.metaKey) &&
+              ["c", "x"].includes(event.key.toLowerCase())
+            )
+              blockCopy(event);
+          }}
+          inert={guard.awaySince !== null || !!guard.endedReason}
+        >
           <div className="mb-6">
             <span className="text-xs font-bold uppercase tracking-wider text-brand-600 bg-brand-50 px-2.5 py-1 rounded-md">
               Câu hỏi {currentIndex + 1}
@@ -733,6 +1116,7 @@ export default function ExamPage() {
   if (examState === "FINISHED" && result) {
     return (
       <div className="max-w-3xl mx-auto py-6 space-y-6">
+        {protectionDialog()}
         <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden text-center p-8">
           <div
             className={`w-20 h-20 rounded-2xl mx-auto flex items-center justify-center mb-4 ${
@@ -802,6 +1186,9 @@ export default function ExamPage() {
                 localStorage.removeItem("quiz_active_attempt");
                 localStorage.removeItem("quiz_local_attempt_v2");
                 frozen.current = null;
+                guardRef.current = emptyGuard();
+                setGuard(guardRef.current);
+                setCopyNotice("");
                 tokenRef.current = "";
                 sessionRef.current = null;
                 setRegistrationReady(false);
