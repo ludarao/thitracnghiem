@@ -1,3 +1,8 @@
+import {
+  readLimitedJson,
+  verifyTurnstile,
+  securityConfig,
+} from "../../../lib/request-security";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import {
@@ -11,7 +16,10 @@ import {
 } from "../../../lib/server";
 export async function GET(req: NextRequest) {
   try {
-    return NextResponse.json({ authenticated: await isAdmin(req) });
+    return NextResponse.json(
+      { authenticated: await isAdmin(req), security: securityConfig() },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (e) {
     return failure(e);
   }
@@ -19,7 +27,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     checkOrigin(req);
-    const { password } = await req.json();
+    const body = await readLimitedJson(req, 4096);
+    await verifyTurnstile(
+      body.verificationToken,
+      "admin_login",
+      req.nextUrl.hostname,
+    );
+    const { password } = body;
     if (typeof password !== "string" || password.length > 200)
       throw new Error("Mật khẩu không hợp lệ.");
     let account = await prisma.adminAccount.findUnique({
@@ -92,7 +106,7 @@ export async function PUT(req: NextRequest) {
     checkOrigin(req);
     if (!(await isAdmin(req)))
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const { password } = await req.json();
+    const { password } = await readLimitedJson(req, 4096);
     if (
       typeof password !== "string" ||
       password.length < 10 ||

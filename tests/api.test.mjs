@@ -438,7 +438,7 @@ test("API nguồn yêu cầu: chặn thao tác từ origin khác và token giả
         exam.GET(req("/api/exam", "GET", undefined, bearer("fake"))),
       )
     ).status,
-    400,
+    401,
   );
 });
 
@@ -629,9 +629,31 @@ test("API điểm cao nhất: nâng điểm, giữ đơn vị lượt tốt nh�
   );
   const headers = await login();
   const history = await (
-    await results.GET(
-      req("/api/results?history=1", "GET", undefined, headers),
-    )
+    await results.GET(req("/api/results?history=1", "GET", undefined, headers))
   ).json();
   assert.equal(history.history.length, 3);
+});
+
+test("API bảo vệ: thiếu xác minh không tạo hồ sơ/lượt thi hoặc chạy đăng nhập", async () => {
+  reset();
+  process.env.TURNSTILE_ENABLED = "true";
+  process.env.TURNSTILE_SITE_KEY = "fixture";
+  process.env.TURNSTILE_SECRET_KEY = "fixture-secret";
+  try {
+    const response = await expectedError(() =>
+      exam.POST(req("/api/exam", "POST", { userInfo })),
+    );
+    assert.equal(response.status, 403);
+    assert.equal(candidates.size, 0);
+    assert.equal(attempts.size, 0);
+    const loginResponse = await expectedError(() =>
+      admin.POST(req("/api/admin", "POST", { password: "invalid" })),
+    );
+    assert.equal(loginResponse.status, 403);
+    assert.equal(account, null);
+  } finally {
+    delete process.env.TURNSTILE_ENABLED;
+    delete process.env.TURNSTILE_SITE_KEY;
+    delete process.env.TURNSTILE_SECRET_KEY;
+  }
 });

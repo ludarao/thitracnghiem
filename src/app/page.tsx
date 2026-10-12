@@ -1,4 +1,5 @@
 "use client";
+import Verification from "../components/Verification";
 
 import React, { useState, useEffect, useRef } from "react";
 import { api } from "../lib/client";
@@ -32,6 +33,9 @@ type Session = {
   result: ExamResult | null;
 };
 export default function ExamPage() {
+  const [security, setSecurity] = useState({ enabled: false, siteKey: "" });
+  const [verificationToken, setVerificationToken] = useState("");
+  const [verificationReset, setVerificationReset] = useState(0);
   const [config, setConfig] = useState<ExamConfig | null>(null);
   const [examState, setExamState] = useState<
     "REGISTER" | "IN_PROGRESS" | "FINISHED"
@@ -150,6 +154,7 @@ export default function ExamPage() {
         }
         const data = await api("/api/config");
         setConfig(data.config);
+        if (data.security) setSecurity(data.security);
         setUserInfo((prev) => ({
           ...prev,
           unit: data.config.units[0]?.name || "",
@@ -186,6 +191,10 @@ export default function ExamPage() {
   const handleStartExam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
+    if (security.enabled && !verificationToken) {
+      setError("Vui lòng hoàn tất xác minh trước khi bắt đầu.");
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -193,7 +202,7 @@ export default function ExamPage() {
       localStorage.removeItem("quiz_storage_check");
       const data = await api("/api/exam", {
         method: "POST",
-        body: JSON.stringify({ userInfo }),
+        body: JSON.stringify({ userInfo, verificationToken }),
       });
       tokenRef.current = data.token;
       frozen.current = null;
@@ -204,6 +213,8 @@ export default function ExamPage() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      setVerificationToken("");
+      setVerificationReset((value) => value + 1);
       setBusy(false);
     }
   };
@@ -468,9 +479,27 @@ export default function ExamPage() {
               </div>
 
               <div className="pt-4">
+                {security.enabled &&
+                  (security.siteKey ? (
+                    <Verification
+                      siteKey={security.siteKey}
+                      action="exam_start"
+                      onToken={setVerificationToken}
+                      resetKey={verificationReset}
+                    />
+                  ) : (
+                    <p role="alert" className="text-red-700">
+                      Xác minh chưa được cấu hình. Vui lòng liên hệ quản trị
+                      viên.
+                    </p>
+                  ))}
                 <button
                   type="submit"
-                  disabled={!config.isOpen || busy}
+                  disabled={
+                    !config.isOpen ||
+                    busy ||
+                    (security.enabled && !verificationToken)
+                  }
                   className="w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-brand-600 to-brand-600 text-white font-semibold text-base shadow-lg shadow-brand-500/25 hover:from-brand-700 hover:to-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
                 >
                   <span>

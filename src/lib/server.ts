@@ -1,3 +1,4 @@
+import { RequestError } from "./request-security";
 import {
   randomBytes,
   scryptSync,
@@ -55,10 +56,11 @@ export function failure(error: unknown) {
     {
       success: false,
       error:
-        error instanceof Error && error.constructor === Error
+        error instanceof Error &&
+        (error.constructor === Error || error instanceof RequestError)
           ? error.message
           : "Không thể xử lý dữ liệu. Kiểm tra kết nối database.",
     },
-    { status: 400 },
+    { status: error instanceof RequestError ? error.status : 400 },
   );
 }

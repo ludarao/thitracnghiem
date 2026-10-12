@@ -1,3 +1,4 @@
+import { securityConfig } from "../../../lib/request-security";
 import { unstable_cache, revalidateTag } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { settings, isAdmin, checkOrigin, failure } from "../../../lib/server";
@@ -21,7 +22,11 @@ export async function GET(req: NextRequest) {
     const admin = await isAdmin(req);
     if (!admin)
       return NextResponse.json(
-        { success: true, ...(await publicConfig()) },
+        {
+          success: true,
+          ...(await publicConfig()),
+          security: securityConfig(),
+        },
         { headers: { "Cache-Control": "no-store" } },
       );
     const s = await settings();

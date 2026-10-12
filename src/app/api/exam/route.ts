@@ -1,3 +1,7 @@
+import {
+  readLimitedJson,
+  verifyTurnstile,
+} from "../../../lib/request-security";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import {
@@ -23,7 +27,12 @@ import type {
 export async function POST(req: NextRequest) {
   try {
     checkOrigin(req);
-    const body = await req.json();
+    const body = await readLimitedJson(req, 128 * 1024);
+    await verifyTurnstile(
+      body.verificationToken,
+      "exam_start",
+      req.nextUrl.hostname,
+    );
     const info = body.userInfo as UserInfo;
     const s = await settings();
     const cfg = s.config as unknown as ExamConfig;
@@ -123,12 +132,12 @@ async function processAttempt(req: NextRequest, mutate: boolean) {
   try {
     if (mutate) checkOrigin(req);
     const raw = req.headers.get("authorization")?.replace(/^Bearer /, "");
-    if (!raw)
+    if (!raw || !/^[a-f0-9]{64}$/.test(raw))
       return NextResponse.json(
         { error: "Thiếu mã phiên thi." },
         { status: 401 },
       );
-    const body = mutate ? await req.json() : {};
+    const body = mutate ? await readLimitedJson(req, 128 * 1024) : {};
     if (mutate && body.action !== "submit")
       return NextResponse.json(
         { error: "Chỉ gửi bài khi nộp; tiến độ được lưu trên máy." },

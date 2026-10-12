@@ -1,5 +1,6 @@
 "use client";
 
+import Verification from "../../components/Verification";
 import React, { useState, useEffect } from "react";
 import { api } from "../../lib/client";
 import {
@@ -27,6 +28,10 @@ import {
 } from "lucide-react";
 
 export default function AdminPage() {
+  const [security, setSecurity] = useState({ enabled: false, siteKey: "" });
+  const [verificationToken, setVerificationToken] = useState("");
+  const [verificationReset, setVerificationReset] = useState(0);
+  const [loginBusy, setLoginBusy] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inputPassword, setInputPassword] = useState("");
   const [loginError, setLoginError] = useState("");
@@ -73,6 +78,7 @@ export default function AdminPage() {
   useEffect(() => {
     void api("/api/admin")
       .then((data) => {
+        if (data.security) setSecurity(data.security);
         if (data.authenticated) {
           setIsAuthenticated(true);
           void loadAdminData();
@@ -92,16 +98,26 @@ export default function AdminPage() {
   };
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loginBusy) return;
+    if (security.enabled && !verificationToken) {
+      setLoginError("Vui lòng hoàn tất xác minh.");
+      return;
+    }
+    setLoginBusy(true);
     try {
       await api("/api/admin", {
         method: "POST",
-        body: JSON.stringify({ password: inputPassword }),
+        body: JSON.stringify({ password: inputPassword, verificationToken }),
       });
       setIsAuthenticated(true);
       setLoginError("");
       await loadAdminData();
     } catch (e) {
       setLoginError((e as Error).message);
+    } finally {
+      setLoginBusy(false);
+      setVerificationToken("");
+      setVerificationReset((value) => value + 1);
     }
   };
   const handleLogout = async () => {
@@ -288,8 +304,22 @@ export default function AdminPage() {
               />
             </div>
 
+            {security.enabled &&
+              (security.siteKey ? (
+                <Verification
+                  siteKey={security.siteKey}
+                  action="admin_login"
+                  onToken={setVerificationToken}
+                  resetKey={verificationReset}
+                />
+              ) : (
+                <p role="alert" className="text-red-700">
+                  Xác minh chưa được cấu hình.
+                </p>
+              ))}
             <button
               type="submit"
+              disabled={loginBusy || (security.enabled && !verificationToken)}
               className="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm shadow-md transition-all"
             >
               Đăng Nhập Quản Trị
