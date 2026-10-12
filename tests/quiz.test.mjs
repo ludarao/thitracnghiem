@@ -182,6 +182,17 @@ test("Điểm cao nhất: bằng điểm lấy lượt mới hơn, rồi ID đ�
 test("Số hiệu giữ nguyên dấu gạch ngang và số 0 đầu", () => {
   assert.equal(normalizeServiceNumber(" 649-605 "), "649-605");
   assert.equal(normalizeServiceNumber("001-002"), "001-002");
-  for (const value of [null, "", "649--605", "649 605", "abc", "1".repeat(33)])
+  assert.equal(normalizeServiceNumber("650695"), "650-695");
+  assert.equal(normalizeServiceNumber("001002"), "001-002");
+  for (const value of [
+    null,
+    "",
+    "649--605",
+    "649 605",
+    "abc",
+    "12345",
+    "1234567",
+    "1".repeat(33),
+  ])
     assert.throws(() => normalizeServiceNumber(value));
 });

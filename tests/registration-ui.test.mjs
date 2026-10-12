@@ -228,3 +228,39 @@ test("offline active attempt restores without loading registration config", asyn
     h.cleanup();
   }
 });
+
+test("service number field formats typing and paste without losing leading zeroes", async () => {
+  const h = setup();
+  try {
+    await h.flush();
+    h.api = async () => ({
+      config: cfg,
+      security: { enabled: false, siteKey: "" },
+    });
+    h.button("Làm Lượt Khác").props.onClick();
+    await h.flush();
+    const input = () =>
+      nodes(h.tree).find((n) => n.props?.id === "service-number");
+    input().props.onChange({ target: { value: "650695" } });
+    h.render();
+    assert.equal(input().props.value, "650-695");
+    let prevented = false;
+    input().props.onPaste({
+      preventDefault() {
+        prevented = true;
+      },
+      clipboardData: { getData: () => "001002" },
+    });
+    h.render();
+    assert.equal(prevented, true);
+    assert.equal(input().props.value, "001-002");
+    input().props.onPaste({
+      preventDefault() {},
+      clipboardData: { getData: () => "123456789" },
+    });
+    h.render();
+    assert.equal(input().props.value, "001-002");
+  } finally {
+    h.cleanup();
+  }
+});

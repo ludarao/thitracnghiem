@@ -3,11 +3,10 @@ import type { ExamConfig, Question } from "../types/quiz";
 export function normalizeServiceNumber(value: unknown): string {
   if (typeof value !== "string") throw new Error("Vui lòng nhập số hiệu.");
   const number = value.trim();
-  if (number.length > 32 || !/^\d+(?:-\d+)*$/.test(number))
-    throw new Error(
-      "Số hiệu gồm chữ số và dấu gạch ngang, tối đa 32 ký tự (ví dụ: 649-605).",
-    );
-  return number;
+  if (!/^\d{3}-?\d{3}$/.test(number))
+    throw new Error("Số hiệu phải có đúng 6 chữ số, ví dụ 650-695.");
+  const digits = number.replace("-", "");
+  return digits.slice(0, 3) + "-" + digits.slice(3);
 }
 export function normalizePhone(value: string) {
   let phone = value.replace(/[\s().-]/g, "");

@@ -1,4 +1,5 @@
 "use client";
+import { formatServiceNumberInput } from "../lib/service-number-input";
 import Verification from "../components/Verification";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -213,6 +214,15 @@ export default function ExamPage() {
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [examState]);
+  const handleServiceNumberInput = (value: string) => {
+    try {
+      const serviceNumber = formatServiceNumberInput(value);
+      setUserInfo((prev) => ({ ...prev, serviceNumber }));
+      setError("");
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
   const handleStartExam = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
@@ -416,22 +426,28 @@ export default function ExamPage() {
                   id="service-number"
                   type="text"
                   required
-                  maxLength={32}
-                  pattern="[0-9]+(-[0-9]+)*"
+                  maxLength={7}
+                  inputMode="numeric"
+                  pattern="[0-9]{3}-[0-9]{3}"
+                  title="Nhập 6 chữ số, ví dụ 650-695"
+                  aria-describedby="service-number-hint"
                   autoComplete="off"
                   placeholder="Ví dụ: 649-605"
                   value={userInfo.serviceNumber || ""}
-                  onChange={(e) =>
-                    setUserInfo({
-                      serviceNumber: e.target.value,
-                      unit: userInfo.unit,
-                    })
-                  }
+                  onChange={(e) => handleServiceNumberInput(e.target.value)}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    handleServiceNumberInput(e.clipboardData.getData("text"));
+                  }}
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-sm"
                 />
-                <p className="text-xs text-slate-500 mt-1">
-                  Số hiệu cũng là mã thí sinh. Dùng cùng số hiệu khi thi lại; hệ
-                  thống ghi nhận điểm cao nhất.
+                <p
+                  id="service-number-hint"
+                  className="text-xs text-slate-500 mt-1"
+                >
+                  Nhập 6 chữ số, dấu gạch ngang được thêm tự động (650695 →
+                  650-695). Số hiệu cũng là mã thí sinh. Dùng cùng số hiệu khi
+                  thi lại; hệ thống ghi nhận điểm cao nhất.
                 </p>
               </div>
 

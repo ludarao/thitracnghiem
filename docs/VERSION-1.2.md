@@ -8,7 +8,7 @@ Form chỉ có:
 1. Số hiệu (ví dụ `649-605`).
 2. Đơn vị, chọn từ danh sách cấu hình hiện có.
 
-Số hiệu là mã thí sinh. Giữ nguyên số 0 ở đầu và dấu gạch ngang; chỉ bỏ khoảng trắng ở đầu/cuối. Chấp nhận chữ số và dấu gạch ngang ngăn nhóm chữ số, tối đa 32 ký tự. Cùng số hiệu là cùng một thí sinh dù đổi đơn vị; số hiệu khác là hồ sơ khác. Vì không thu thập thông tin khác, cần cung cấp đúng số hiệu của mình.
+Số hiệu là mã thí sinh. Giữ nguyên số 0 ở đầu và dấu gạch ngang; chỉ bỏ khoảng trắng ở đầu/cuối. Số hiệu hiện yêu cầu đúng 6 chữ số theo dạng 3-3. Nhập/dán `650695` tự thành `650-695`; server cũng chuẩn hóa số hiệu 6 chữ số không có gạch ngang. Cùng số hiệu là cùng một thí sinh dù đổi đơn vị; số hiệu khác là hồ sơ khác. Vì không thu thập thông tin khác, cần cung cấp đúng số hiệu của mình.
 
 Server chỉ lưu số hiệu, mã thí sinh và đơn vị trong hồ sơ/lượt mới. Không lấy tên, điện thoại, cấp bậc hoặc chức vụ kể cả request có gửi thêm. Số hiệu mới dùng `Candidate.code` hiện có làm khóa unique.
 
@@ -31,3 +31,9 @@ Kết quả theo điện thoại ở phiên bản cũ được giữ nguyên nh�
 Có thể chọn deployment của 1.1 hoặc bản trước Turnstile để rollback code. Không cần ép lại trường phone bắt buộc, vì schema nullable vẫn giữ được dữ liệu cũ. Các hồ sơ số hiệu không có điện thoại sẽ không được nhận diện bằng form điện thoại của bản cũ; dữ liệu vẫn được lưu. Không chạy migration đảo chiều đặt phone NOT NULL khi còn hồ sơ số hiệu.
 
 Các test kiểm tra hai trường, loại bỏ trường thừa, giữ số hiệu chính xác, thi lại, điểm cao nhất, đơn vị hợp lệ, nộp trùng và xác minh. Build/typecheck được kiểm tra; chưa áp dụng migration hoặc nộp thử vào database Production.
+
+## Cập nhật tự định dạng số hiệu
+
+Ô nhập tự chuyển `650695` thành `650-695`, giữ số 0 đầu. Server nhận hai dạng đủ 6 chữ số và lưu cùng dạng 3-3. Nội dung quá 6 chữ số không được âm thầm cắt khi dán.
+
+Migration `202610120002_service_number_format` chuẩn hóa mã cũ gồm đúng 6 chữ số. Nếu mã có gạch ngang đã tồn tại, các lượt thi của mã không gạch ngang được liên kết về hồ sơ có gạch ngang để lấy điểm cao nhất trên toàn bộ lượt. Không xóa hồ sơ, lượt thi hay điểm; mã cũ theo họ tên/điện thoại không bị ảnh hưởng. Snapshot lịch sử cũ giữ nguyên nội dung tại thời điểm thi. Dùng `npm run vercel-build` để áp dụng migration và lưu bản sao database trước khi triển khai Production.

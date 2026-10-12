@@ -263,7 +263,7 @@ test("API hồ sơ 1.2: cùng số hiệu dùng cùng mã; chỉ lưu số hiệ
     rank: "Không thu thập",
     position: "Không thu thập",
   });
-  const second = await start({ ...userInfo, serviceNumber: " 649-605 " });
+  const second = await start({ ...userInfo, serviceNumber: "649605" });
   assert.equal(first.candidateCode, "649-605");
   assert.equal(second.candidateCode, first.candidateCode);
   assert.equal(candidates.size, 1);
