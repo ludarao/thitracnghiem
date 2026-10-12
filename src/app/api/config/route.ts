@@ -35,6 +35,7 @@ export async function GET(req: NextRequest) {
         success: true,
         config: s.config,
         examId: s.activeExamId,
+        security: securityConfig(),
         ...(admin ? { questions: s.questions } : {}),
       },
       { headers: { "Cache-Control": "no-store" } },

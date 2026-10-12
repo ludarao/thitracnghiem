@@ -678,3 +678,36 @@ test("API bảo vệ: thiếu xác minh không tạo hồ sơ/lượt thi hoặc
     delete process.env.TURNSTILE_SECRET_KEY;
   }
 });
+
+test("API cấu hình: có security ở cả phiên Admin và công khai, không lộ secret", async () => {
+  reset();
+  const headers = await login();
+  process.env.TURNSTILE_ENABLED = "true";
+  process.env.TURNSTILE_SITE_KEY = "test-public-site-key";
+  process.env.TURNSTILE_SECRET_KEY = "test-private-secret";
+  try {
+    for (const authentication of [{}, headers]) {
+      const response = await settings.GET(
+        req("/api/config", "GET", undefined, authentication),
+      );
+      assert.equal(response.status, 200);
+      const data = await response.json();
+      assert.deepEqual(data.security, {
+        enabled: true,
+        siteKey: "test-public-site-key",
+      });
+      assert.equal(JSON.stringify(data).includes("test-private-secret"), false);
+      assert.equal("questions" in data, authentication === headers);
+      assert.equal(response.headers.get("cache-control"), "no-store");
+    }
+    process.env.TURNSTILE_ENABLED = "false";
+    const data = await (
+      await settings.GET(req("/api/config", "GET", undefined, headers))
+    ).json();
+    assert.deepEqual(data.security, { enabled: false, siteKey: "" });
+  } finally {
+    delete process.env.TURNSTILE_ENABLED;
+    delete process.env.TURNSTILE_SITE_KEY;
+    delete process.env.TURNSTILE_SECRET_KEY;
+  }
+});
