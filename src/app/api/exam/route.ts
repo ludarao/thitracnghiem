@@ -1,3 +1,8 @@
+import {
+  authorizeAttemptToken,
+  issueAttemptToken,
+  limitAttemptRequests,
+} from "../../../lib/attempt-security";
 import { protectionSettings } from "../../../lib/local-exam-guard";
 import {
   readLimitedJson,
@@ -56,7 +61,7 @@ export async function POST(req: NextRequest) {
       update: {},
       create: { phone: null, code: serviceNumber, info: snapshot },
     });
-    const raw = token();
+    const raw = issueAttemptToken();
     const now = new Date();
     const bankId = await saveBank(s.questions as unknown as Question[]);
     const { units, ...attemptConfig } = cfg;
@@ -80,7 +85,9 @@ export async function POST(req: NextRequest) {
           candidateId: candidate.id,
           examId: s.activeExamId,
           info: JSON.parse(JSON.stringify(snapshot)),
-          config: JSON.parse(JSON.stringify(attemptConfig)),
+          config: JSON.parse(
+            JSON.stringify({ ...attemptConfig, attemptTokenVersion: 2 }),
+          ),
           bankId,
           questions: JSON.parse(
             JSON.stringify(
@@ -126,12 +133,10 @@ export async function PATCH(req: NextRequest) {
 async function processAttempt(req: NextRequest, mutate: boolean) {
   try {
     if (mutate) checkOrigin(req);
-    const raw = req.headers.get("authorization")?.replace(/^Bearer /, "");
-    if (!raw || !/^[a-f0-9]{64}$/.test(raw))
-      return NextResponse.json(
-        { error: "Thiếu mã phiên thi." },
-        { status: 401 },
-      );
+    const raw = await authorizeAttemptToken(
+      req.headers.get("authorization")?.replace(/^Bearer /, ""),
+    );
+    limitAttemptRequests(raw, mutate);
     const body = mutate ? await readLimitedJson(req, 128 * 1024) : {};
     if (mutate && body.action !== "submit")
       return NextResponse.json(

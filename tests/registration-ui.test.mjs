@@ -57,7 +57,16 @@ require.cache[require.resolve("../src/components/Verification.tsx")] = {
 };
 require.cache[require.resolve("../src/lib/client.ts")] = {
   loaded: true,
-  exports: { api: (...args) => active.api(...args) },
+  exports: {
+    api: (...args) => active.api(...args),
+    ApiError: class ApiError extends Error {
+      constructor(message, status, code) {
+        super(message);
+        this.status = status;
+        this.code = code;
+      }
+    },
+  },
 };
 require.cache[require.resolve("../src/components/useExamTab.ts")] = {
   loaded: true,
@@ -556,6 +565,90 @@ test("end-session cannot discard a pending submission", async () => {
     assert.ok(h.button("Làm Lượt Khác"));
   } finally {
     globalThis.confirm = previousConfirm;
+    h.cleanup();
+  }
+});
+
+test("deleted locked attempt can leave the guard popup and register again without repeated submission", async () => {
+  const { ApiError } = require("../src/lib/client.ts");
+  const saved = {
+    ...session,
+    result: null,
+    config: { ...cfg, monitorEnabled: true },
+  };
+  const raw = JSON.stringify({
+    version: 3,
+    token: "a".repeat(64),
+    session: saved,
+    offset: 0,
+    frozen: { 1: "A" },
+    guard: {
+      awaySince: null,
+      returnedAt: null,
+      awayAnswers: null,
+      leaveCount: 0,
+      totalAwayMs: 0,
+      endedReason: "deadline",
+      acknowledged: false,
+    },
+  });
+  const h = setup(saved, { raw });
+  try {
+    await h.flush();
+    h.api = async (url) => {
+      h.calls.push(url);
+      if (url === "/api/exam")
+        throw new ApiError("Phiên thi đã bị hủy.", 410, "ATTEMPT_GONE");
+      return { config: cfg, security: { enabled: false, siteKey: "" } };
+    };
+    h.emit("online");
+    await h.flush();
+    const modal = () =>
+      nodes(h.tree).find(
+        (n) =>
+          n.props?.ended === "deadline" &&
+          typeof n.props?.onRetry === "function",
+      );
+    assert.equal(modal().props.attemptGone, true);
+    assert.doesNotMatch(modal().props.error, /Có mạng/);
+    const before = h.calls.length;
+    h.emit("online");
+    await h.flush();
+    assert.equal(h.calls.length, before);
+    modal().props.onRestart();
+    h.render();
+    assert.equal(modal().props.restartConfirmation, true);
+    modal().props.onCancelRestart();
+    h.render();
+    assert.equal(modal().props.restartConfirmation, false);
+    assert.ok(h.storage.has("quiz_local_attempt_v2"));
+    modal().props.onRestart();
+    h.render();
+    modal().props.onConfirmRestart();
+    await h.flush();
+    assert.equal(h.storage.has("quiz_local_attempt_v2"), false);
+    assert.ok(h.button("Bắt Đầu"));
+    assert.equal(h.calls.at(-1), "/api/config");
+  } finally {
+    h.cleanup();
+  }
+});
+
+test("signed session snapshots restore offline without quarantine or extra requests", async () => {
+  const token = "v2." + "a".repeat(64) + "." + "b".repeat(64);
+  const saved = { ...session, result: null };
+  const h = setup(saved, {
+    raw: JSON.stringify({ token, session: saved, offset: 0, frozen: null }),
+  });
+  try {
+    await h.flush();
+    assert.ok(h.button("Kết thúc phiên thi"));
+    assert.equal(
+      JSON.parse(h.storage.get("quiz_local_attempt_v2")).token,
+      token,
+    );
+    assert.deepEqual(h.calls, []);
+  } finally {
     h.cleanup();
   }
 });

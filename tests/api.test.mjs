@@ -20,6 +20,8 @@ require.extensions[".ts"] = (module, filename) =>
   );
 const { NextRequest } = require("next/server");
 const { DEFAULT_CONFIG } = require("../src/lib/storage.ts");
+process.env.EXAM_TOKEN_SECRET =
+  "isolated-test-key-not-a-production-secret-2026";
 let config, candidates, attempts, account, sessions, sequence, legacy;
 function reset() {
   config = {
@@ -151,6 +153,8 @@ const db = {
     },
   },
   adminSession: {
+    findMany: async () =>
+      [...sessions.values()].map((s) => ({ token: s.token })),
     findUnique: async ({ where }) => sessions.get(where.token),
     create: async ({ data }) => {
       sessions.set(data.token, data);
@@ -199,6 +203,10 @@ function exportPage(records, { where = {}, take }) {
     .slice(0, take);
 }
 db.$queryRaw = async (strings, ...values) => {
+  if (strings.join(" ").includes("attemptTokenVersion"))
+    return [...attempts.values()]
+      .filter((a) => !a.config.attemptTokenVersion)
+      .map((a) => ({ token: a.token }));
   if (/FOR (SHARE|UPDATE)/.test(strings.join(" "))) return [config];
   assert.match(
     strings.join(" "),
@@ -640,7 +648,7 @@ test("API nộp đồng thời cùng lượt: một kết quả thắng, đáp �
   reset();
   const { token } = await start();
   const replies = await Promise.all(
-    Array.from({ length: 50 }, (_, i) =>
+    Array.from({ length: 6 }, (_, i) =>
       action(token, { action: "submit", answers: { 1: i % 2 ? "A" : "B" } }),
     ),
   );
@@ -970,7 +978,7 @@ test("purge requires a logged-in session and correct stored password; keeps conf
         exam.GET(req("/api/exam", "GET", null, bearer(started.token))),
       )
     ).status,
-    400,
+    410,
   );
 });
 
@@ -1028,4 +1036,196 @@ test("export stays bounded when stored attempt details are large", async () => {
     ),
   );
   assert.equal(oversized.status, 413);
+});
+
+test("signed fake tokens are rejected before any database read", async () => {
+  reset();
+  const originalFind = db.attempt.findUnique;
+  const originalQuery = db.$queryRaw;
+  let reads = 0;
+  db.attempt.findUnique = async (...args) => {
+    reads++;
+    return originalFind(...args);
+  };
+  db.$queryRaw = async (...args) => {
+    reads++;
+    return originalQuery(...args);
+  };
+  try {
+    const fake = "v2." + "a".repeat(64) + "." + "b".repeat(64);
+    for (const method of ["GET", "PATCH"]) {
+      const response = await exam[method](
+        req(
+          "/api/exam",
+          method,
+          method === "PATCH" ? { action: "submit", answers: {} } : null,
+          bearer(fake),
+        ),
+      );
+      assert.equal(response.status, 401);
+      assert.equal((await response.json()).errorCode, "ATTEMPT_INVALID");
+    }
+    assert.equal(reads, 0);
+  } finally {
+    db.attempt.findUnique = originalFind;
+    db.$queryRaw = originalQuery;
+  }
+});
+test("legacy sessions continue; unknown legacy tokens share one allowlist load instead of individual DB lookups", async () => {
+  reset();
+  const security = require("../src/lib/attempt-security.ts");
+  const { digest } = require("../src/lib/server.ts");
+  const started = await start();
+  const row = [...attempts.values()][0];
+  const old = "c".repeat(64);
+  row.token = digest(old);
+  delete row.config.attemptTokenVersion;
+  security.invalidateLegacyAttemptCache();
+  const originalQuery = db.$queryRaw,
+    originalFind = db.attempt.findUnique;
+  let loads = 0,
+    reads = 0;
+  db.$queryRaw = async (...args) => {
+    loads++;
+    return originalQuery(...args);
+  };
+  db.attempt.findUnique = async (...args) => {
+    reads++;
+    return originalFind(...args);
+  };
+  try {
+    assert.equal(
+      (await exam.GET(req("/api/exam", "GET", null, bearer(old)))).status,
+      200,
+    );
+    const replies = await Promise.all(
+      Array.from({ length: 50 }, (_, i) =>
+        exam.GET(
+          req(
+            "/api/exam",
+            "GET",
+            null,
+            bearer(i.toString(16).padStart(64, "0")),
+          ),
+        ),
+      ),
+    );
+    assert.ok(replies.every((r) => r.status === 410));
+    assert.equal(loads, 1);
+    assert.equal(reads, 1);
+    assert.equal(
+      (await action(old, { action: "submit", answers: { 1: "A" } })).status,
+      200,
+    );
+  } finally {
+    db.$queryRaw = originalQuery;
+    db.attempt.findUnique = originalFind;
+    security.invalidateLegacyAttemptCache();
+  }
+});
+test("submit limit is per attempt, returns Retry-After, and resets after a minute", async () => {
+  reset();
+  const first = await start(),
+    second = await start({ ...userInfo, serviceNumber: "649-606" });
+  for (let i = 0; i < 6; i++)
+    assert.equal(
+      (await action(first.token, { action: "submit", answers: { 1: "A" } }))
+        .status,
+      200,
+    );
+  const limited = await action(first.token, { action: "submit", answers: {} });
+  assert.equal(limited.status, 429);
+  assert.equal(limited.headers.get("retry-after"), "60");
+  assert.equal((await limited.json()).errorCode, "RATE_LIMITED");
+  assert.equal(
+    (await action(second.token, { action: "submit", answers: {} })).status,
+    200,
+  );
+  const oldNow = Date.now;
+  Date.now = () => oldNow() + 61000;
+  try {
+    assert.equal(
+      (await action(first.token, { action: "submit", answers: {} })).status,
+      200,
+    );
+  } finally {
+    Date.now = oldNow;
+  }
+});
+test("deleted signed attempt returns explicit gone code and out-of-range pages do not query attempt details", async () => {
+  reset();
+  const started = await start();
+  attempts.clear();
+  const gone = await action(started.token, { action: "submit", answers: {} });
+  assert.equal(gone.status, 410);
+  assert.equal((await gone.json()).errorCode, "ATTEMPT_GONE");
+  const original = db.attempt.findMany;
+  let reads = 0;
+  db.attempt.findMany = async (...args) => {
+    reads++;
+    return original(...args);
+  };
+  try {
+    const response = await results.GET(req("/api/results?page=100000"));
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).results, []);
+    assert.equal(reads, 0);
+  } finally {
+    db.attempt.findMany = original;
+  }
+});
+
+test("forged signed admin cookies and exam tokens used as admin cookies are rejected without session reads", async () => {
+  reset();
+  const started = await start();
+  const original = db.adminSession.findUnique,
+    originalList = db.adminSession.findMany;
+  let reads = 0;
+  db.adminSession.findUnique = async (...args) => {
+    reads++;
+    return original(...args);
+  };
+  db.adminSession.findMany = async (...args) => {
+    reads++;
+    return originalList(...args);
+  };
+  try {
+    for (const value of [
+      "v2." + "a".repeat(64) + "." + "b".repeat(64),
+      started.token,
+    ]) {
+      const response = await admin.GET(
+        req("/api/admin", "GET", null, { Cookie: "quiz_admin=" + value }),
+      );
+      assert.equal((await response.json()).authenticated, false);
+    }
+    assert.equal(reads, 0);
+  } finally {
+    db.adminSession.findUnique = original;
+    db.adminSession.findMany = originalList;
+  }
+});
+
+test("forged signed admin logout cookies cannot cause database deletes", async () => {
+  reset();
+  const original = db.adminSession.deleteMany;
+  let deletes = 0;
+  db.adminSession.deleteMany = async (...args) => {
+    deletes++;
+    return original(...args);
+  };
+  try {
+    const value = "v2." + "a".repeat(64) + "." + "b".repeat(64);
+    assert.equal(
+      (
+        await admin.DELETE(
+          req("/api/admin", "DELETE", null, { Cookie: "quiz_admin=" + value }),
+        )
+      ).status,
+      200,
+    );
+    assert.equal(deletes, 0);
+  } finally {
+    db.adminSession.deleteMany = original;
+  }
 });

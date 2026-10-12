@@ -1,3 +1,12 @@
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+    public code?: string,
+  ) {
+    super(message);
+  }
+}
 export async function api<T = any>(
   url: string,
   options: RequestInit = {},
@@ -13,6 +22,10 @@ export async function api<T = any>(
     );
   const data = await response.json();
   if (!response.ok || data.success === false)
-    throw new Error(data.error || "Không thể kết nối hệ thống.");
+    throw new ApiError(
+      data.error || "Không thể kết nối hệ thống.",
+      response.status,
+      data.errorCode,
+    );
   return data;
 }

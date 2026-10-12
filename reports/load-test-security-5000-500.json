@@ -1,0 +1,380 @@
+{
+  "date": "2026-10-12T09:13:52.398Z",
+  "environment": {
+    "tokenProtection": "v2 HMAC; six submit requests/minute/token/worker",
+    "scope": "localhost production Next.js + real PostgreSQL; no CDN, WAN or Vercel autoscaling",
+    "postgres": [
+      {
+        "version": "PostgreSQL 18.4 on x86_64-apple-darwin24.6.0, compiled by Apple clang version 17.0.0 (clang-1700.6.3.2), 64-bit"
+      }
+    ],
+    "participants": 5000,
+    "concurrentRequests": 500,
+    "questions": 30,
+    "prismaConnections": 10,
+    "requestTimeoutMs": 20000
+  },
+  "phases": [
+    {
+      "name": "config-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 294,
+      "p50Ms": 166,
+      "p95Ms": 263,
+      "maxMs": 273
+    },
+    {
+      "name": "start-1",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 720,
+      "p50Ms": 557,
+      "p95Ms": 692,
+      "maxMs": 699
+    },
+    {
+      "name": "submit-1",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 339,
+      "p50Ms": 262,
+      "p95Ms": 321,
+      "maxMs": 326
+    },
+    {
+      "name": "start-2",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 587,
+      "p50Ms": 421,
+      "p95Ms": 567,
+      "maxMs": 575
+    },
+    {
+      "name": "submit-2",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 293,
+      "p50Ms": 226,
+      "p95Ms": 278,
+      "maxMs": 281
+    },
+    {
+      "name": "start-3",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 559,
+      "p50Ms": 401,
+      "p95Ms": 531,
+      "maxMs": 539
+    },
+    {
+      "name": "submit-3",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 292,
+      "p50Ms": 199,
+      "p95Ms": 276,
+      "maxMs": 279
+    },
+    {
+      "name": "start-4",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 608,
+      "p50Ms": 417,
+      "p95Ms": 586,
+      "maxMs": 596
+    },
+    {
+      "name": "submit-4",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 310,
+      "p50Ms": 217,
+      "p95Ms": 291,
+      "maxMs": 294
+    },
+    {
+      "name": "start-5",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 615,
+      "p50Ms": 443,
+      "p95Ms": 595,
+      "maxMs": 603
+    },
+    {
+      "name": "submit-5",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 326,
+      "p50Ms": 209,
+      "p95Ms": 308,
+      "maxMs": 311
+    },
+    {
+      "name": "start-6",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 651,
+      "p50Ms": 453,
+      "p95Ms": 618,
+      "maxMs": 642
+    },
+    {
+      "name": "submit-6",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 304,
+      "p50Ms": 203,
+      "p95Ms": 277,
+      "maxMs": 282
+    },
+    {
+      "name": "start-7",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 586,
+      "p50Ms": 432,
+      "p95Ms": 562,
+      "maxMs": 572
+    },
+    {
+      "name": "submit-7",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 294,
+      "p50Ms": 191,
+      "p95Ms": 275,
+      "maxMs": 278
+    },
+    {
+      "name": "start-8",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 520,
+      "p50Ms": 378,
+      "p95Ms": 500,
+      "maxMs": 509
+    },
+    {
+      "name": "submit-8",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 274,
+      "p50Ms": 223,
+      "p95Ms": 258,
+      "maxMs": 261
+    },
+    {
+      "name": "start-9",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 543,
+      "p50Ms": 359,
+      "p95Ms": 520,
+      "maxMs": 528
+    },
+    {
+      "name": "submit-9",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 309,
+      "p50Ms": 265,
+      "p95Ms": 294,
+      "maxMs": 296
+    },
+    {
+      "name": "start-10",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 523,
+      "p50Ms": 374,
+      "p95Ms": 502,
+      "maxMs": 511
+    },
+    {
+      "name": "submit-10",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 279,
+      "p50Ms": 208,
+      "p95Ms": 263,
+      "maxMs": 266
+    },
+    {
+      "name": "retry-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 246,
+      "p50Ms": 147,
+      "p95Ms": 230,
+      "maxMs": 233
+    },
+    {
+      "name": "dashboard-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "rateLimited": 0,
+      "elapsedMs": 216,
+      "p50Ms": 143,
+      "p95Ms": 166,
+      "maxMs": 199
+    },
+    {
+      "name": "same-attempt-race-500",
+      "requests": 500,
+      "success": 6,
+      "failed": 0,
+      "rateLimited": 494,
+      "elapsedMs": 140,
+      "p50Ms": 79,
+      "p95Ms": 114,
+      "maxMs": 139
+    }
+  ],
+  "errors": [],
+  "idempotent": true,
+  "dashboardCountsCorrect": true,
+  "sameAttemptRace": true,
+  "sameAttemptRateLimited": 494,
+  "persisted": {
+    "candidates": 5000,
+    "attempts": 5001,
+    "submitted": 5001,
+    "questionBanks": 1
+  },
+  "unitCounts": [
+    {
+      "unit": "Đơn vị kiểm thử 0",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 1",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 2",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 3",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 4",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 5",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 6",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 7",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 8",
+      "count": 500
+    },
+    {
+      "unit": "Đơn vị kiểm thử 9",
+      "count": 500
+    }
+  ],
+  "storage": [
+    {
+      "table": "AdminAccount",
+      "bytes": 16384
+    },
+    {
+      "table": "AdminSession",
+      "bytes": 16384
+    },
+    {
+      "table": "Attempt",
+      "bytes": 14336000
+    },
+    {
+      "table": "Candidate",
+      "bytes": 1392640
+    },
+    {
+      "table": "ExamResult",
+      "bytes": 32768
+    },
+    {
+      "table": "QuestionBank",
+      "bytes": 81920
+    },
+    {
+      "table": "QuizSettings",
+      "bytes": 81920
+    },
+    {
+      "table": "_prisma_migrations",
+      "bytes": 32768
+    }
+  ],
+  "databaseBytes": [
+    {
+      "bytes": 24147647
+    }
+  ],
+  "completedAt": "2026-10-12T09:14:02.774Z",
+  "loadGeneratorCpu": {
+    "user": 3904252,
+    "system": 563083
+  }
+}

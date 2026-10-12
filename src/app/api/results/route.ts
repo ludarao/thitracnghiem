@@ -139,6 +139,24 @@ export async function GET(req: NextRequest) {
       (requested - 1) * pageSize,
       requested * pageSize,
     );
+    if (!ids.length) {
+      const { ids: unused, ...stats } = snapshot;
+      return NextResponse.json(
+        {
+          success: true,
+          ...stats,
+          results: [],
+          page: requested,
+          pageSize,
+          hasMore: false,
+        },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60",
+          },
+        },
+      );
+    }
     const results = await unstable_cache(
       async () => {
         const records = await prisma.attempt.findMany({

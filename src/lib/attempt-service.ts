@@ -1,3 +1,4 @@
+import { RequestError } from "./request-security";
 import { validateMonitoringReport } from "./local-exam-guard";
 import { prisma } from "./prisma";
 import { advanceAttempt, type AttemptState } from "./attempt-state";
@@ -6,7 +7,12 @@ import type { ExamConfig, ExamResult, UserInfo } from "../types/quiz";
 
 export async function getAttempt(token: string) {
   const a = await prisma.attempt.findUnique({ where: { token } });
-  if (!a) throw new Error("Phiên thi không tồn tại.");
+  if (!a)
+    throw new RequestError(
+      "Phiên thi đã bị hủy hoặc không còn tồn tại. Hãy đăng ký lượt mới.",
+      410,
+      "ATTEMPT_GONE",
+    );
   const questions = await hydrateQuestions(a);
   const config = a.config as unknown as ExamConfig;
   const answers = a.answers as Record<string, string>;

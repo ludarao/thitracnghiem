@@ -6,7 +6,7 @@ import {
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import {
-  token,
+  adminSessionToken,
   digest,
   hashPassword,
   verifyPassword,
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       where: { id: "main" },
       data: { failedAttempts: 0, lockedUntil: null },
     });
-    const raw = token();
+    const raw = adminSessionToken();
     await prisma.adminSession.create({
       data: {
         token: digest(raw),
@@ -133,7 +133,7 @@ export async function DELETE(req: NextRequest) {
   try {
     checkOrigin(req);
     const raw = req.cookies.get("quiz_admin")?.value;
-    if (raw)
+    if (raw && (await isAdmin(req)))
       await prisma.adminSession.deleteMany({ where: { token: digest(raw) } });
     const res = NextResponse.json({ success: true });
     res.cookies.set("quiz_admin", "", { maxAge: 0, path: "/" });

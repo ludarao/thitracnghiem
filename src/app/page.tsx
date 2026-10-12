@@ -19,7 +19,7 @@ import {
   LOCAL_ATTEMPT_KEY,
 } from "../lib/local-attempt";
 import React, { useState, useEffect, useRef } from "react";
-import { api } from "../lib/client";
+import { api, ApiError } from "../lib/client";
 import { ExamConfig, Question, UserInfo, ExamResult } from "../types/quiz";
 import {
   Clock,
@@ -83,6 +83,7 @@ export default function ExamPage() {
   const [result, setResult] = useState<ExamResult | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [attemptGone, setAttemptGone] = useState(false);
   const [showEndConfirmation, setShowEndConfirmation] = useState(false);
   const sessionRef = useRef<Session | null>(null);
   const tokenRef = useRef("");
@@ -128,7 +129,8 @@ export default function ExamPage() {
       ownership.status !== "owned" ||
       pending.current ||
       !sessionRef.current ||
-      sessionRef.current.result
+      sessionRef.current.result ||
+      attemptGone
     )
       return;
     try {
@@ -165,10 +167,18 @@ export default function ExamPage() {
       }
       setError("");
     } catch (e) {
-      setError(
-        (e as Error).message +
-          " Bài đã khóa và được giữ trên máy. Có mạng hãy bấm Thử nộp lại.",
-      );
+      if (
+        e instanceof ApiError &&
+        ["ATTEMPT_GONE", "ATTEMPT_INVALID"].includes(e.code || "")
+      ) {
+        setAttemptGone(true);
+        setError(e.message);
+      } else {
+        setError(
+          (e as Error).message +
+            " Bài đã khóa và được giữ trên máy. Có mạng hãy bấm Thử nộp lại.",
+        );
+      }
     } finally {
       pending.current = false;
       setBusy(false);
@@ -278,7 +288,10 @@ export default function ExamPage() {
             }
             setRecovery({
               raw: local,
-              token: local.match(/"token"\s*:\s*"([a-f0-9]{64})"/)?.[1] ?? null,
+              token:
+                local.match(
+                  /"token"\s*:\s*"((?:v2\.)?[a-f0-9]{64}(?:\.[a-f0-9]{64})?)"/,
+                )?.[1] ?? null,
               backedUp,
             });
             await loadRegistrationConfig();
@@ -341,11 +354,12 @@ export default function ExamPage() {
   useEffect(() => {
     if (ownership.status !== "owned") return;
     const online = () => {
+      if (attemptGone) return;
       if (frozen.current) void submit();
     };
     window.addEventListener("online", online);
     return () => window.removeEventListener("online", online);
-  }, [ownership.status]);
+  }, [ownership.status, attemptGone]);
   useEffect(() => {
     if (examState !== "IN_PROGRESS" || ownership.status !== "owned") return;
     const session = sessionRef.current;
@@ -413,6 +427,11 @@ export default function ExamPage() {
     return (
       <ExamGuardDialog
         ended={guard.endedReason}
+        attemptGone={attemptGone}
+        restartConfirmation={showEndConfirmation}
+        onRestart={() => setShowEndConfirmation(true)}
+        onCancelRestart={() => setShowEndConfirmation(false)}
+        onConfirmRestart={startAnotherAttempt}
         seconds={Math.max(
           0,
           Math.floor(
@@ -557,6 +576,7 @@ export default function ExamPage() {
     setRegistrationReady(false);
     setVerificationToken("");
     setShowEndConfirmation(false);
+    setAttemptGone(false);
     setCurrentIndex(0);
     setSelectedAnswers({});
     setExamQuestions([]);
@@ -952,8 +972,15 @@ export default function ExamPage() {
         {error && (
           <p role="alert" className="p-3 bg-red-50 text-red-700">
             {error}
-            <button onClick={handleSubmitExam} className="ml-3 underline">
-              Thử nộp lại
+            <button
+              onClick={
+                attemptGone
+                  ? () => setShowEndConfirmation(true)
+                  : handleSubmitExam
+              }
+              className="ml-3 underline"
+            >
+              {attemptGone ? "Đăng ký lượt mới" : "Thử nộp lại"}
             </button>
           </p>
         )}

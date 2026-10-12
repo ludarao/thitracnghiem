@@ -22,6 +22,7 @@ if ((await prisma.attempt.count()) || (await prisma.candidate.count()))
 const report = {
   date: new Date().toISOString(),
   environment: {
+    tokenProtection: "v2 HMAC; six submit requests/minute/token/worker",
     scope:
       "localhost production Next.js + real PostgreSQL; no CDN, WAN or Vercel autoscaling",
     postgres: await prisma.$queryRaw`SELECT version()`,
@@ -68,13 +69,18 @@ async function phase(name, jobs) {
     name,
     requests: rows.length,
     success: rows.filter((r) => r.ok).length,
-    failed: rows.filter((r) => !r.ok).length,
+    failed: rows.filter(
+      (r) => !r.ok && !(name === "same-attempt-race-500" && r.status === 429),
+    ).length,
+    rateLimited: rows.filter((r) => r.status === 429).length,
     elapsedMs: Math.round(elapsed),
     p50Ms: Math.round(sorted[Math.ceil(sorted.length * 0.5) - 1] || 0),
     p95Ms: Math.round(sorted[Math.ceil(sorted.length * 0.95) - 1] || 0),
     maxMs: Math.round(sorted.at(-1) || 0),
   });
-  for (const r of rows.filter((r) => !r.ok))
+  for (const r of rows.filter(
+    (r) => !r.ok && !(name === "same-attempt-race-500" && r.status === 429),
+  ))
     if (report.errors.length < 10)
       report.errors.push({
         phase: name,
@@ -102,10 +108,7 @@ try {
           method: "POST",
           body: JSON.stringify({
             userInfo: {
-              fullName: "Thí sinh kiểm thử " + i,
-              phone: "09" + String(10000000 + i),
-              rank: "Kiểm thử",
-              position: "Kiểm thử",
+              serviceNumber: String(100000 + i),
               unit: config.data.config.units[i % 10].name,
             },
           }),
@@ -164,10 +167,7 @@ try {
     method: "POST",
     body: JSON.stringify({
       userInfo: {
-        fullName: "Thí sinh kiểm thử 0",
-        phone: "0910000000",
-        rank: "Kiểm thử",
-        position: "Kiểm thử",
+        serviceNumber: "100000",
         unit: config.data.config.units[0].name,
       },
     }),
@@ -190,9 +190,15 @@ try {
         }),
     ),
   );
-  report.sameAttemptRace = same.every(
-    (r) => r.ok && isDeepStrictEqual(r.data.result, same[0].data.result),
-  );
+  const accepted = same.filter((r) => r.ok);
+  report.sameAttemptRace =
+    accepted.length > 0 &&
+    accepted.every((r) =>
+      isDeepStrictEqual(r.data.result, accepted[0].data.result),
+    );
+  report.sameAttemptRateLimited = same.filter((r) => r.status === 429).length;
+  if (same.some((r) => !r.ok && r.status !== 429))
+    report.sameAttemptRace = false;
   report.persisted = {
     candidates: await prisma.candidate.count(),
     attempts: await prisma.attempt.count(),
@@ -207,9 +213,10 @@ try {
     await prisma.$queryRaw`SELECT relname AS table, pg_total_relation_size(relid)::bigint AS bytes FROM pg_stat_user_tables ORDER BY relname`;
   report.databaseBytes =
     await prisma.$queryRaw`SELECT pg_database_size(current_database()) AS bytes`;
+  report.completedAt = new Date().toISOString();
   report.loadGeneratorCpu = process.cpuUsage();
   writeFileSync(
-    "reports/load-test-5000-500.json",
+    "reports/load-test-security-5000-500.json",
     JSON.stringify(
       report,
       (_, value) => (typeof value === "bigint" ? Number(value) : value),

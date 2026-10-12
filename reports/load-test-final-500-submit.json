@@ -1,0 +1,35 @@
+{
+  "scope": "Final production build on localhost + isolated PostgreSQL, pool 10; no production data",
+  "startedAt": "2026-10-12T09:20:55.345Z",
+  "participants": 500,
+  "phases": [
+    {
+      "name": "start-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "p95Ms": 1161,
+      "maxMs": 1221,
+      "elapsedMs": 1244
+    },
+    {
+      "name": "submit-500",
+      "requests": 500,
+      "success": 500,
+      "failed": 0,
+      "p95Ms": 433,
+      "maxMs": 438,
+      "elapsedMs": 460
+    }
+  ],
+  "gradesCorrect": true,
+  "newPersistedSubmissions": 500,
+  "completedAt": "2026-10-12T09:20:57.162Z",
+  "serverCpuApproximate": {
+    "scope": "Additional final 500-start + 500-submit run only, Next.js process PID 92992; excludes PostgreSQL/generator. Samples bracket interval every 250 ms.",
+    "samples": 9,
+    "elapsedMs": 2150,
+    "cpuSeconds": 2.866008,
+    "peakRssMB": 308.34375
+  }
+}

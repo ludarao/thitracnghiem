@@ -1,3 +1,4 @@
+import { invalidateLegacyAttemptCache } from "../../../../lib/attempt-security";
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "../../../../lib/prisma";
@@ -120,6 +121,7 @@ export async function DELETE(req: NextRequest) {
       const legacy = await tx.examResult.deleteMany({});
       return { attempts: attempts.count, legacy: legacy.count };
     });
+    invalidateLegacyAttemptCache();
     revalidateTag("quiz-leaderboard", { expire: 0 });
     revalidateTag("quiz-config", { expire: 0 });
     revalidatePath("/api/results");

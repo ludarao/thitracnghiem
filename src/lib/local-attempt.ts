@@ -1,3 +1,4 @@
+import { isAttemptToken } from "./attempt-token-format";
 import type { ExamConfig, UserInfo, Question, ExamResult } from "../types/quiz";
 import { emptyGuard, type GuardState } from "./local-exam-guard";
 export const LOCAL_ATTEMPT_KEY = "quiz_local_attempt_v2";
@@ -30,7 +31,7 @@ export function parseLocalAttempt(raw: string): SavedAttempt {
       saved.version === 3
     ) ||
     typeof saved.token !== "string" ||
-    !/^[a-f0-9]{64}$/.test(saved.token) ||
+    !isAttemptToken(saved.token) ||
     !Number.isFinite(saved.offset) ||
     !record(saved.session)
   )
