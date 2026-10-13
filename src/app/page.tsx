@@ -781,8 +781,8 @@ export default function ExamPage() {
         <div className="bg-white rounded-2xl shadow-xl shadow-amber-900/10 border border-amber-200 overflow-hidden">
           <div className="bg-gradient-to-r from-brand-700 to-brand-900 p-6 sm:p-8 text-white text-center relative overflow-hidden">
             <div className="relative z-10">
-              <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-sm mb-3">
-                Cổng Thi Trực Tuyến
+              <span className="inline-block px-3 py-1 rounded-full text-sm font-semibold uppercase tracking-wider bg-white/20 backdrop-blur-sm mb-3">
+                Hệ thống thi trắc nghiệm trực tuyến
               </span>
               <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-2">
                 Đăng ký dự thi
