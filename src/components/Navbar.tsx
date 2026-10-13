@@ -31,10 +31,10 @@ export default function Navbar() {
               />
               <div className="flex flex-col">
                 <span className="font-bold text-brand-700 leading-tight text-base sm:text-xl">
-                  HỆ THỐNG THI TRẮC NGHIỆM
+                  CÔNG AN TỈNH GIA LAI
                 </span>
-                <span className="text-xs text-slate-600 font-medium">
-                  Đội Điều lệnh, Quân sự, Võ thuật, Văn thể
+                <span className="font-bold text-xs text-brand-700 font-medium">
+                  PHÒNG CÔNG TÁC CHÍNH TRỊ
                 </span>
               </div>
             </Link>
