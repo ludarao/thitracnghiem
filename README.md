@@ -1,5 +1,9 @@
 # Thi trắc nghiệm
 
+## Cập nhật nhiều bộ câu hỏi — 1.4
+
+Admin có thể nạp Excel riêng cho từng bộ/chương, đặt số câu lấy từ mỗi bộ và kiểm tra tổng phân bổ khớp số câu mỗi đề. Ngân hàng cũ được giữ thành Bộ 1 khi chỉnh sửa; các lượt đã bắt đầu giữ nguyên đề. Xem [hướng dẫn nhiều bộ câu hỏi](docs/QUESTION-SETS-1.4.md) cho cách dùng và triển khai. Những phần bên dưới là tài liệu tích lũy từ các phiên bản trước.
+
 Ứng dụng Next.js với PostgreSQL/Prisma. Cấu hình, ngân hàng đề, hồ sơ và lượt thi được lưu trên server.
 
 ## Quy tắc

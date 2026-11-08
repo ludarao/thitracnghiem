@@ -1,5 +1,6 @@
 export interface Question {
   id: number;
+  setId?: string; // Bộ/chương; không có ở ngân hàng của phiên bản cũ.
   question: string;
   options: {
     A: string;
@@ -8,6 +9,12 @@ export interface Question {
     D: string;
   };
   correct: string;
+}
+
+export interface QuestionSet {
+  id: string;
+  name: string;
+  questionCount: number; // Số câu bắt buộc lấy từ bộ này trong mỗi đề.
 }
 
 export interface UnitTarget {
@@ -23,6 +30,7 @@ export interface ExamConfig {
   description: string;
   totalTimeMinutes: number; // Tổng thời gian thi cả bài (phút), 0 = không giới hạn
   questionCount: number; // Số câu lấy ra để thi (ví dụ: 30 / 50)
+  questionSets?: QuestionSet[];
   shuffleQuestions: boolean; // Đảo thứ tự câu hỏi
   shuffleOptions: boolean; // Đảo thứ tự A, B, C, D
   passingScorePercent: number; // Điểm đạt chuẩn % (mặc định 80%)

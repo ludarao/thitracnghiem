@@ -51,6 +51,8 @@ export async function POST(req: NextRequest) {
     )
       throw new Error("Vui lòng chọn đơn vị trong danh sách.");
     const identity = candidateIdentity(info.nameInitials, info.phone);
+    // Reject an invalid allocation before creating a candidate or attempt.
+    const refs = questionRefs(s.questions as unknown as Question[], cfg);
     const snapshot = {
       ...identity,
       unit: info.unit,
@@ -92,11 +94,7 @@ export async function POST(req: NextRequest) {
             JSON.stringify({ ...attemptConfig, attemptTokenVersion: 2 }),
           ),
           bankId,
-          questions: JSON.parse(
-            JSON.stringify(
-              questionRefs(s.questions as unknown as Question[], cfg),
-            ),
-          ),
+          questions: JSON.parse(JSON.stringify(refs)),
           answers: {},
           startTime: now,
           questionStartedAt: now,

@@ -1393,3 +1393,161 @@ test("dashboard invalid pages reject before DB access", async () => {
     db.$queryRaw = original;
   }
 });
+
+test("API question sets: save quotas, generate exact counts and retain old exam after replacing a set", async () => {
+  reset();
+  const headers = await login();
+  const bank = [
+    ...config.questions.map((q) => ({ ...q, setId: "first" })),
+    ...Array.from({ length: 5 }, (_, i) => ({
+      id: i + 3,
+      setId: "second",
+      question: `Set2-${i}`,
+      options: { A: "A", B: "B", C: "C", D: "D" },
+      correct: "C",
+    })),
+  ];
+  const plan = {
+    ...config.config,
+    questionCount: 3,
+    questionSets: [
+      { id: "first", name: "Bộ 1", questionCount: 1 },
+      { id: "second", name: "Bộ 2", questionCount: 2 },
+    ],
+  };
+  assert.equal(
+    (
+      await settings.PUT(
+        req("/api/config", "PUT", { config: plan, questions: bank }, headers),
+      )
+    ).status,
+    200,
+  );
+  const loaded = await (
+    await settings.GET(req("/api/config", "GET", undefined, headers))
+  ).json();
+  assert.deepEqual(loaded.config.questionSets, plan.questionSets);
+  assert.equal(loaded.questions.length, 7);
+  const first = await start();
+  assert.equal(first.questions.length, 3);
+  assert.deepEqual(
+    first.questions.map((q) => q.setId),
+    ["first", "second", "second"],
+  );
+  assert.ok(first.questions.every((q) => !("correct" in q)));
+  const originalBank = [...attempts.values()][0].bankId;
+  const replacement = bank.map((q) =>
+    q.setId === "second"
+      ? { ...q, question: "New set question", correct: "D" }
+      : q,
+  );
+  assert.equal(
+    (
+      await settings.PUT(
+        req(
+          "/api/config",
+          "PUT",
+          { config: plan, questions: replacement },
+          headers,
+        ),
+      )
+    ).status,
+    200,
+  );
+  const second = await start();
+  assert.notEqual([...attempts.values()][1].bankId, originalBank);
+  assert.equal(second.questions[1].question, "New set question");
+  const restored = await (
+    await exam.GET(req("/api/exam", "GET", undefined, bearer(first.token)))
+  ).json();
+  assert.deepEqual(restored.questions, first.questions);
+  const answers = Object.fromEntries(
+    first.questions.map((q) => [q.id, bank.find((b) => b.id === q.id).correct]),
+  );
+  const submitted = await (
+    await action(first.token, { action: "submit", answers })
+  ).json();
+  assert.equal(submitted.result.score, 10);
+  assert.equal(submitted.result.totalQuestions, 3);
+});
+
+test("API question sets: reject invalid allocations without saving or creating profiles/attempts", async () => {
+  reset();
+  const headers = await login();
+  const original = structuredClone(config);
+  const questions = config.questions.map((q) => ({ ...q, setId: "one" }));
+  for (const count of [1, 3, -1, 1.5]) {
+    const invalid = await expectedError(() =>
+      settings.PUT(
+        req(
+          "/api/config",
+          "PUT",
+          {
+            config: {
+              ...config.config,
+              questionSets: [{ id: "one", name: "Bộ 1", questionCount: count }],
+            },
+            questions,
+          },
+          headers,
+        ),
+      ),
+    );
+    assert.equal(invalid.status, 400);
+    assert.deepEqual(config, original);
+  }
+  config = {
+    ...config,
+    questions,
+    config: {
+      ...config.config,
+      questionSets: [{ id: "one", name: "Bộ 1", questionCount: 3 }],
+    },
+  };
+  const invalid = await expectedError(() =>
+    exam.POST(req("/api/exam", "POST", { userInfo })),
+  );
+  assert.equal(invalid.status, 400);
+  assert.equal(candidates.size, 0);
+  assert.equal(attempts.size, 0);
+});
+
+test("Excel files with TT starting at 1 import separately and can generate a combined exam", async () => {
+  const XLSX = require("xlsx");
+  const { parseExcelQuestions } = require("../src/lib/excel.ts");
+  const { replaceQuestionSet } = require("../src/lib/question-sets.ts");
+  const { questionRefs } = require("../src/lib/question-bank.ts");
+  const parse = async (label) => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(
+      workbook,
+      XLSX.utils.aoa_to_sheet([
+        ["TT", "Question", "A", "B", "C", "D", "Correct"],
+        [1, label + "1", "A", "B", "C", "D", "A"],
+        [2, label + "2", "A", "B", "C", "D", "B"],
+      ]),
+      "Questions",
+    );
+    const bytes = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+    return parseExcelQuestions({ arrayBuffer: async () => bytes });
+  };
+  let bank = replaceQuestionSet([], "a", await parse("A"));
+  bank = replaceQuestionSet(bank, "b", await parse("B"));
+  assert.equal(new Set(bank.map((q) => q.id)).size, 4);
+  const refs = questionRefs(bank, {
+    ...DEFAULT_CONFIG,
+    questionCount: 3,
+    questionSets: [
+      { id: "a", name: "A", questionCount: 1 },
+      { id: "b", name: "B", questionCount: 2 },
+    ],
+  });
+  assert.equal(
+    refs.filter((r) => bank.find((q) => q.id === r.id).setId === "a").length,
+    1,
+  );
+  assert.equal(
+    refs.filter((r) => bank.find((q) => q.id === r.id).setId === "b").length,
+    2,
+  );
+});

@@ -2,6 +2,7 @@ import { createHash, randomInt } from "node:crypto";
 import type { PrismaClient } from "@prisma/client";
 import { prisma } from "./prisma";
 import type { ExamConfig, Question } from "../types/quiz";
+import { selectExamQuestions } from "./question-sets";
 type Key = keyof Question["options"];
 export type QuestionRef = { id: number; order: Key[] };
 const cache = new Map<string, Promise<Question[]>>();
@@ -59,14 +60,12 @@ export function questionRefs(
   questions: Question[],
   config: ExamConfig,
 ): QuestionRef[] {
-  return (config.shuffleQuestions ? shuffled(questions) : questions)
-    .slice(0, config.questionCount)
-    .map((q) => ({
-      id: q.id,
-      order: config.shuffleOptions
-        ? shuffled<Key>(["A", "B", "C", "D"])
-        : ["A", "B", "C", "D"],
-    }));
+  return selectExamQuestions(questions, config, shuffled).map((q) => ({
+    id: q.id,
+    order: config.shuffleOptions
+      ? shuffled<Key>(["A", "B", "C", "D"])
+      : ["A", "B", "C", "D"],
+  }));
 }
 export async function hydrateQuestions(
   attempt: {

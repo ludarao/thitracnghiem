@@ -65,7 +65,11 @@ export async function PUT(req: NextRequest) {
     const body = await req.json();
     const old = await settings();
     const questions = validateQuestions(body.questions ?? old.questions);
-    const config = validateConfig(body.config as ExamConfig, questions.length);
+    const config = validateConfig(
+      body.config as ExamConfig,
+      questions.length,
+      questions,
+    );
     const s = await prisma.quizSettings.update({
       where: { id: "main" },
       data: {

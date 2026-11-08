@@ -1,5 +1,9 @@
 import { randomInt } from "node:crypto";
 import type { ExamConfig, Question } from "../types/quiz";
+import {
+  selectExamQuestions,
+  validateQuestionSetPlan,
+} from "./question-sets.ts";
 export function normalizeServiceNumber(value: unknown): string {
   if (typeof value !== "string") throw new Error("Vui lòng nhập số hiệu.");
   const number = value.trim();
@@ -56,7 +60,12 @@ export function validateQuestions(value: unknown): Question[] {
   }
   return value;
 }
-export function validateConfig(config: ExamConfig, count: number) {
+export function validateConfig(
+  config: ExamConfig,
+  count: number,
+  questions?: Question[],
+) {
+  const questionSets = validateQuestionSetPlan(config, questions ?? []);
   const protection = {
     monitorEnabled: config.monitorEnabled ?? true,
     maxAwaySeconds: config.maxAwaySeconds ?? 30,
@@ -116,6 +125,7 @@ export function validateConfig(config: ExamConfig, count: number) {
     description: config.description,
     totalTimeMinutes: config.totalTimeMinutes,
     questionCount: config.questionCount,
+    ...(questionSets ? { questionSets } : {}),
     shuffleQuestions: config.shuffleQuestions,
     shuffleOptions: config.shuffleOptions,
     passingScorePercent: config.passingScorePercent,
@@ -136,18 +146,16 @@ function shuffle<T>(values: T[]) {
   return copy;
 }
 export function prepareQuestions(questions: Question[], config: ExamConfig) {
-  return (config.shuffleQuestions ? shuffle(questions) : questions)
-    .slice(0, config.questionCount)
-    .map((q) => {
-      if (!config.shuffleOptions) return q;
-      const keys = ["A", "B", "C", "D"] as const;
-      const order = shuffle([...keys]);
-      return {
-        ...q,
-        options: Object.fromEntries(
-          order.map((key, i) => [keys[i], q.options[key]]),
-        ) as Question["options"],
-        correct: keys[order.indexOf(q.correct as (typeof keys)[number])],
-      };
-    });
+  return selectExamQuestions(questions, config, shuffle).map((q) => {
+    if (!config.shuffleOptions) return q;
+    const keys = ["A", "B", "C", "D"] as const;
+    const order = shuffle([...keys]);
+    return {
+      ...q,
+      options: Object.fromEntries(
+        order.map((key, i) => [keys[i], q.options[key]]),
+      ) as Question["options"],
+      correct: keys[order.indexOf(q.correct as (typeof keys)[number])],
+    };
+  });
 }

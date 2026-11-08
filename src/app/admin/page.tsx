@@ -1,12 +1,16 @@
 "use client";
 
 import Verification from "../../components/Verification";
+import QuestionSetsEditor from "../../components/QuestionSetsEditor";
+import {
+  editableQuestionSets,
+  validateQuestionSetPlan,
+} from "../../lib/question-sets";
 import React, { useState, useEffect, useRef } from "react";
 import { api } from "../../lib/client";
 import { collectSubmittedHistory } from "../../lib/history-export";
 import {
   exportResultsToExcel,
-  parseExcelQuestions,
   parseExcelUnits,
   downloadUnitTemplate,
 } from "../../lib/excel";
@@ -22,7 +26,6 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  FileSpreadsheet,
   ListOrdered,
   LogOut,
   Layers,
@@ -164,6 +167,8 @@ export default function AdminPage() {
   // Cấu hình
   const [config, setConfig] = useState<ExamConfig | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [bankBusy, setBankBusy] = useState(false);
+  const [saveBusy, setSaveBusy] = useState(false);
   const [newUnitName, setNewUnitName] = useState("");
   const [newUnitTarget, setNewUnitTarget] = useState<number>(0);
 
@@ -174,9 +179,6 @@ export default function AdminPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordMsg, setPasswordMsg] = useState("");
-
-  // Tải file excel
-  const [uploadStatus, setUploadStatus] = useState<string>("");
 
   useEffect(() => {
     void api("/api/admin")
@@ -192,8 +194,9 @@ export default function AdminPage() {
   const loadAdminData = async () => {
     try {
       const data = await api("/api/config");
-      setConfig(data.config);
-      setQuestions(data.questions || []);
+      const editable = editableQuestionSets(data.config, data.questions || []);
+      setConfig(editable.config);
+      setQuestions(editable.questions);
       void loadHistory();
     } catch (e) {
       setLoginError((e as Error).message);
@@ -234,8 +237,10 @@ export default function AdminPage() {
     }
   };
   const handleSaveConfig = async () => {
-    if (!config) return;
+    if (!config || bankBusy || saveBusy) return;
     try {
+      validateQuestionSetPlan(config, questions);
+      setSaveBusy(true);
       await api("/api/config", {
         method: "PUT",
         body: JSON.stringify({ config, questions }),
@@ -243,6 +248,8 @@ export default function AdminPage() {
       alert("Đã lưu cấu hình chung cho toàn bộ thí sinh.");
     } catch (e) {
       alert((e as Error).message);
+    } finally {
+      setSaveBusy(false);
     }
   };
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -326,31 +333,6 @@ export default function AdminPage() {
     } finally {
       setUnitsImportBusy(false);
       input.value = "";
-    }
-  };
-
-  // Upload file excel câu hỏi mới
-  const handleExcelUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setUploadStatus("Đang đọc và phân tích file Excel...");
-      const parsedQuestions = await parseExcelQuestions(file);
-
-      setQuestions(parsedQuestions);
-
-      // Tự động điều chỉnh số lượng câu hỏi thi nếu cấu hình vượt quá số câu
-      if (config && config.questionCount > parsedQuestions.length) {
-        const updatedCfg = { ...config, questionCount: parsedQuestions.length };
-        setConfig(updatedCfg);
-      }
-
-      setUploadStatus(
-        `Đã đọc ${parsedQuestions.length} câu hỏi. Nhấn Lưu Cấu Hình để cập nhật lên server.`,
-      );
-    } catch (err: any) {
-      setUploadStatus(`Lỗi: ${err.message || "Không thể đọc file"}`);
     }
   };
 
@@ -459,10 +441,11 @@ export default function AdminPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={handleSaveConfig}
-            className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm shadow-sm transition-all flex items-center gap-1.5"
+            disabled={bankBusy || saveBusy}
+            className="disabled:opacity-50 px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm shadow-sm transition-all flex items-center gap-1.5"
           >
             <Save className="w-4 h-4" />
-            <span>Lưu Cấu Hình</span>
+            <span>{saveBusy ? "Đang lưu..." : "Lưu Cấu Hình"}</span>
           </button>
 
           <button
@@ -911,53 +894,19 @@ export default function AdminPage() {
 
         {/* CỘT 3: IMPORT EXCEL & ĐỔI MẬT KHẨU & BẢO TRÌ */}
         <div className="space-y-8">
-          {/* Nạp File Excel Câu Hỏi */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
-              Nạp File Excel Câu Hỏi Mới
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Cấu trúc chuẩn 7 cột:{" "}
-              <code className="bg-slate-100 px-1 py-0.5 rounded text-slate-700 font-bold">
-                TT, Question, A, B, C, D, Correct
-              </code>{" "}
-              (giống như file{" "}
-              <span className="font-semibold text-slate-700">
-                NGHIQUYETDHXIII.xlsx
-              </span>
-              ).
-            </p>
-
-            <label className="block p-4 border-2 border-dashed border-emerald-300 rounded-xl hover:bg-emerald-50/50 cursor-pointer text-center transition-all">
-              <Upload className="w-8 h-8 text-emerald-600 mx-auto mb-2" />
-              <span className="text-sm font-semibold text-emerald-700 block">
-                Chọn file Excel (.xlsx) để nạp
-              </span>
-              <span className="text-xs text-slate-400">
-                Nhấn Lưu Cấu Hình sau khi nạp câu hỏi
-              </span>
-              <input
-                type="file"
-                accept=".xlsx, .xls"
-                onChange={handleExcelUpload}
-                className="hidden"
-              />
-            </label>
-
-            {uploadStatus && (
-              <p className="text-xs p-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-700">
-                {uploadStatus}
-              </p>
-            )}
-
-            <div className="text-xs text-slate-500 border-t pt-3">
-              Ngân hàng hiện tại:{" "}
-              <span className="font-bold text-brand-600">
-                {questions.length} câu hỏi
-              </span>
-            </div>
-          </div>
+          <QuestionSetsEditor
+            sets={config.questionSets || []}
+            questions={questions}
+            questionCount={config.questionCount}
+            disabled={saveBusy}
+            onBusyChange={setBankBusy}
+            onChange={(sets, nextQuestions) => {
+              setConfig((current) =>
+                current ? { ...current, questionSets: sets } : current,
+              );
+              setQuestions(nextQuestions);
+            }}
+          />
 
           {/* Đổi Mật Khẩu Admin */}
           <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
