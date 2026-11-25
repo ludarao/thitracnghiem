@@ -36,7 +36,9 @@ export async function settings() {
     },
   });
 }
-export async function isAdmin(req: NextRequest) {
+export async function isAdmin(req: {
+  cookies: Pick<NextRequest["cookies"], "get">;
+}) {
   const raw = req.cookies.get("quiz_admin")?.value;
   if (!raw) return false;
   const session = await prisma.adminSession.findUnique({

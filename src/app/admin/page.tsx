@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { api } from "../../lib/client";
 import {
   exportResultsToExcel,
@@ -323,7 +324,14 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/admin/participation"
+            prefetch={false}
+            className="px-4 py-2 rounded-xl border border-brand-200 text-brand-700 hover:bg-brand-50 text-sm font-medium transition-colors"
+          >
+            Thống kê dự thi
+          </Link>
           <button
             onClick={handleSaveConfig}
             className="px-4 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-medium text-sm shadow-sm transition-all flex items-center gap-1.5"
