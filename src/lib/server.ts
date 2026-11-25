@@ -56,7 +56,9 @@ export function adminSessionToken() {
   return `v2.${nonce}.${adminSignature(nonce)}`;
 }
 let legacyAdmins: { expires: number; values: Promise<Set<string>> } | undefined;
-export async function isAdmin(req: NextRequest) {
+export async function isAdmin(req: {
+  cookies: Pick<NextRequest["cookies"], "get">;
+}) {
   const raw = req.cookies.get("quiz_admin")?.value;
   if (!isAttemptToken(raw)) return false;
   if (raw.startsWith("v2.")) {

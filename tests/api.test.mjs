@@ -246,6 +246,7 @@ const exam = require("../src/app/api/exam/route.ts");
 const admin = require("../src/app/api/admin/route.ts");
 const settings = require("../src/app/api/config/route.ts");
 const results = require("../src/app/api/results/route.ts");
+const participationExport = require("../src/app/api/admin/participation/export/route.ts");
 const examData = require("../src/app/api/admin/exam-data/route.ts");
 const userInfo = {
   nameInitials: "ptb",
@@ -290,6 +291,21 @@ async function login() {
   assert.equal(response.status, 200);
   return { Cookie: response.headers.get("set-cookie").split(";")[0] };
 }
+
+test("API xuất thống kê đơn vị yêu cầu phiên admin và đơn vị được chọn", async () => {
+  reset();
+  const path = "/api/admin/participation/export";
+  const unauthenticated = await participationExport.GET(req(path + "?unit=A"));
+  assert.equal(unauthenticated.status, 401);
+  assert.equal(
+    unauthenticated.headers.get("cache-control"),
+    "private, no-store",
+  );
+  const missingUnit = await participationExport.GET(
+    req(path, "GET", undefined, await login()),
+  );
+  assert.equal(missingUnit.status, 400);
+});
 
 test("API hồ sơ: chuẩn hóa viết tắt và điện thoại, dùng mã ghép khi thi lại", async () => {
   reset();

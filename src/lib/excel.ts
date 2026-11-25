@@ -1,5 +1,5 @@
 import * as XLSX from "xlsx";
-import type { Question } from "../types/quiz";
+import type { ExamResult, Question } from "../types/quiz";
 
 import { parseUnitRows } from "./unit-import";
 
@@ -123,7 +123,18 @@ export function exportResultsToExcel(
   const wsRanks = XLSX.utils.json_to_sheet(rankSheetData);
   XLSX.utils.book_append_sheet(wb, wsRanks, "Xep_Hang_Tap_The");
 
-  // Sheet 2: Danh sách cá nhân
+  XLSX.utils.book_append_sheet(
+    wb,
+    createPersonalResultsSheet(results),
+    "Chi_Tiet_Ca_Nhan",
+  );
+  XLSX.writeFile(wb, filename);
+}
+
+export function createPersonalResultsSheet(
+  results: (ExamResult & { examId?: string })[],
+  timeZone?: string,
+) {
   const personalData = results.map((res, idx) => ({
     STT: idx + 1,
     "Mã thí sinh":
@@ -142,10 +153,9 @@ export function exportResultsToExcel(
     "Kết quả": res.isPassed ? "Đạt" : "Chưa đạt",
     "Thời gian làm bài (giây)": res.totalDurationSeconds,
     ...(res.examId ? { "Kỳ thi": res.examId } : {}),
-    "Thời điểm nộp bài": new Date(res.submittedAt).toLocaleString("vi-VN"),
+    "Thời điểm nộp bài": new Date(res.submittedAt).toLocaleString("vi-VN", {
+      timeZone,
+    }),
   }));
-  const wsPersonal = XLSX.utils.json_to_sheet(personalData);
-  XLSX.utils.book_append_sheet(wb, wsPersonal, "Chi_Tiet_Ca_Nhan");
-
-  XLSX.writeFile(wb, filename);
+  return XLSX.utils.json_to_sheet(personalData);
 }
